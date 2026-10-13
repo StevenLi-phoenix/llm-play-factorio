@@ -5,6 +5,10 @@
   factorio-mcp call TOOL [JSON] ...    run tool calls through a real MCP client session
   factorio-mcp tools                   list the tools the server exposes
   factorio-mcp retire --character C    remove character C from the game (test cleanup)
+  factorio-mcp snapshot X1 Y1 X2 Y2    print a JSON snapshot of an explored area (max 200x200); binds no character
+  factorio-mcp register-blueprint STRING --source S [--note N]
+                                       record a blueprint string as made during the run (STRING: text, @file or -)
+  factorio-mcp blueprint-registry      list the registered blueprints (the provenance audit)
   factorio-mcp package-mod [--out D]   zip the mod as factorio-mcp_<version>.zip
 
 Connection settings come from flags or environment variables:
@@ -214,6 +218,32 @@ async def _retire(cfg: Config) -> int:
         rcon.close()
 
 
+async def _harness(cfg: Config, action) -> int:
+    """Runs an unscoped (harness) RPC; no character is bound or created."""
+    from .bridge import ModError
+    from .game import Game
+    from .rcon import RconError
+
+    game = Game(cfg)
+    try:
+        print(json.dumps(await action(game), separators=(",", ":")))
+        return 0
+    except (RconError, ModError) as e:
+        print(f"FAILED: {e}", file=sys.stderr)
+        return 1
+    finally:
+        await game.close()
+
+
+def _read_string(arg: str) -> str:
+    """STRING argument: the text itself, @path to read a file, or - for stdin."""
+    if arg == "-":
+        return sys.stdin.read().strip()
+    if arg.startswith("@"):
+        return Path(arg[1:]).read_text(encoding="utf-8").strip()
+    return arg.strip()
+
+
 def package_mod(out: Path) -> Path:
     info = json.loads((MOD_DIR / "info.json").read_text())
     folder = f"{info['name']}_{info['version']}"
@@ -228,7 +258,8 @@ def package_mod(out: Path) -> Path:
 
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="factorio-mcp", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", nargs="?", default="serve", choices=["serve", "doctor", "call", "tools", "retire", "package-mod"])
+    p.add_argument("command", nargs="?", default="serve", choices=["serve", "doctor", "call", "tools", "retire", "package-mod", "snapshot",
+                                                                  "register-blueprint", "blueprint-registry"])
     p.add_argument("rest", nargs="*", help="for call: TOOL [JSON-ARGS] pairs")
     p.add_argument("--host")
     p.add_argument("--port", type=int)
@@ -236,6 +267,8 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--character")
     p.add_argument("--takeover", action="store_true")
     p.add_argument("--out", default=str(ROOT / "dist"))
+    p.add_argument("--source", help="register-blueprint: where the blueprint came from, e.g. compiled")
+    p.add_argument("--note", help="register-blueprint: free-text audit note")
     args = p.parse_args(argv)
     cfg = config_from(args)
     if args.command == "tools":
@@ -250,6 +283,21 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(asyncio.run(_list_tools(cfg)))
     elif args.command == "retire":
         sys.exit(asyncio.run(_retire(cfg)))
+    elif args.command == "snapshot":
+        if len(args.rest) != 4:
+            p.error("snapshot needs X1 Y1 X2 Y2")
+        try:
+            x1, y1, x2, y2 = (float(v) for v in args.rest)
+        except ValueError:
+            p.error("snapshot coordinates must be numbers")
+        sys.exit(asyncio.run(_harness(cfg, lambda g: g.area_snapshot(x1, y1, x2, y2))))
+    elif args.command == "register-blueprint":
+        if len(args.rest) != 1 or not args.source:
+            p.error("register-blueprint needs STRING (text, @file or -) and --source")
+        string = _read_string(args.rest[0])
+        sys.exit(asyncio.run(_harness(cfg, lambda g: g.register_blueprint(string, args.source, args.note))))
+    elif args.command == "blueprint-registry":
+        sys.exit(asyncio.run(_harness(cfg, lambda g: g.list_registered_blueprints())))
     elif args.command == "package-mod":
         print(package_mod(Path(args.out)))
     elif args.command == "call":

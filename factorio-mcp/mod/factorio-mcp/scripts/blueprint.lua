@@ -5,12 +5,17 @@
 --   read_blueprint    — decode one of those by label
 --   export_blueprint  — capture an explored area of the map as a blueprint
 --                       string (like a player's blueprint tool)
+-- Strings are gated by provenance (scripts/bp_registry.lua): import_blueprint
+-- and build_blueprint accept only strings exported by export_blueprint or
+-- registered through register_blueprint (the compiler of the agent's own
+-- layouts). Carried blueprints are not gated.
 -- Huge prints are read in windows (offset/limit) sized for build_plan batches;
 -- the item bill and footprint always cover the whole print. Other players'
 -- inventories and cursors are not readable (a player couldn't read them).
 local companion = require("scripts.companion")
 local vision = require("scripts.vision")
 local items = require("scripts.items")
+local registry = require("scripts.bp_registry")
 
 local M = {}
 
@@ -144,8 +149,9 @@ local function decode(holder, label, offset, limit)
   }
 end
 
--- Decode an export string into a scratch inventory and run fn(stack).
-local function with_imported(str, fn)
+-- Decode an export string into a scratch inventory and run fn(stack). gated:
+-- refuse layouts that are not in the provenance registry first.
+local function with_imported(str, fn, gated)
   if type(str) ~= "string" or #str < 10 then
     error("a blueprint export string is required (starts with 0eNq...)")
   end
@@ -164,6 +170,7 @@ local function with_imported(str, fn)
       error("that string decodes to '" .. (try(function() return stack.name end) or "?")
         .. "', not a blueprint")
     end
+    if gated then registry.require_registered(stack) end
     return fn(stack)
   end)
   pcall(function() inv.destroy() end)
@@ -174,7 +181,31 @@ end
 function M.import(params)
   return with_imported(params.string, function(stack)
     return decode(stack, try(function() return stack.label end), params.offset, params.limit)
-  end)
+  end, true)
+end
+
+-- Refuse a string that is not in the provenance registry (enqueue-time check
+-- for build_blueprint, so the agent hears it at once instead of from a job).
+function M.check_string(str)
+  with_imported(str, function() end, true)
+end
+
+-- register_blueprint {string, source, note?, character?}: record a string's
+-- layout as made during the run. Not an MCP tool — the layout compiler calls it.
+function M.register(params)
+  local source = params.source
+  if type(source) ~= "string" or source == "" then
+    error("register_blueprint requires source (where the blueprint came from, e.g. \"compiled\")")
+  end
+  return with_imported(params.string, function(stack)
+    return registry.register(stack, { source = source, note = params.note, character = params.character })
+  end, false)
+end
+
+-- list_registered_blueprints: the registry for auditing, oldest first.
+function M.list_registered()
+  local list = registry.list()
+  return { enforced = registry.enforced(), total = #list, blueprints = list }
 end
 
 -- export_blueprint {area = {{x1,y1},{x2,y2}}} or {center={x,y}, radius}:
@@ -229,6 +260,8 @@ function M.export(params)
     local norm = normalize(stack)
     local counts = {}
     for _, e in ipairs(norm.list) do counts[e.name] = (counts[e.name] or 0) + 1 end
+    -- Every string handed out is made in the run: record it before it leaves.
+    registry.register(stack, { source = "export", character = companion.context() })
     return {
       string = stack.export_stack(),
       entity_counts = counts,
@@ -402,7 +435,7 @@ function M.resolve_for_build(params)
         skipped = norm.skipped,
         size = norm.size,
       }
-    end)
+    end, true)
   end
   local chosen = choose_holder(params)
   local norm = normalize(chosen.holder)

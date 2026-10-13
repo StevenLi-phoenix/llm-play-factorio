@@ -56,6 +56,7 @@ Humans who join the server need the same mod version installed, because it isn't
 | chart radius | 2 chunks | Explored area around each agent character |
 | view radius | 32 tiles | How close enemies must be to be seen |
 | explore radius | 64 tiles | How far into unexplored land a walk goal may be |
+| enforce blueprint provenance | on | `import_blueprint` and `build_blueprint` accept only strings exported from the map or registered by the harness (see [Blueprint provenance](#blueprint-provenance)); turn off for sandbox and test servers |
 
 ### 2. The MCP server for each agent
 
@@ -110,6 +111,24 @@ Other conventions:
 - The client advertises only tools the live server's mod can run (`pick_up` needs 0.2.18+, `list_technologies`/`cancel_research` need 0.2.21+; held back against older mods with an honest version error instead of the mod's `unknown task type`).
 - The wire protocol is in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 - A comparison with the other Factorio MCPs is in [research/factorio-agent/11-comparison.md](../research/factorio-agent/11-comparison.md).
+
+## Blueprint provenance
+
+For runs where no blueprint may exist from before the run. `import_blueprint` and `build_blueprint` (given a string) refuse any export string the run did not make. A string passes when its layout is in a per-save registry, which is filled by:
+- `export_blueprint`, for every string it returns (source `export`);
+- the `register_blueprint` RPC, which the layout compiler calls with what it compiled from the agent's own layout JSON (source e.g. `compiled`).
+
+The registry is keyed by layout, not by string: a re-encoded copy, a copy exported from another place on the map, or one with another label is the same entry; a copy with one belt turned is not (the exact key is in [docs/PROTOCOL.md](docs/PROTOCOL.md#blueprint-provenance)). Blueprints a character carries (built in game) are never gated. A refused `build_blueprint` fails at once, not as a failed job. The mod setting `enforce blueprint provenance` (default on) switches the gate off.
+
+`register_blueprint`, `list_registered_blueprints` and `area_snapshot` are harness RPCs: no character is bound and none is an MCP tool. Use them from Python (`Game` or `Bridge`: `await game.register_blueprint(string, "compiled")`, `await game.area_snapshot(x1, y1, x2, y2)`) or from the command line:
+
+```bash
+uv run factorio-mcp snapshot X1 Y1 X2 Y2                       # JSON of an explored area (max 200x200) on stdout
+uv run factorio-mcp register-blueprint @file --source compiled  # STRING may be text, @file or - (stdin)
+uv run factorio-mcp blueprint-registry                          # audit: key_hash, source, character, tick, entity_count, note
+```
+
+A server restart rolls the save back, and the registry with it: strings registered after the last autosave must be registered again.
 
 ## Routing
 

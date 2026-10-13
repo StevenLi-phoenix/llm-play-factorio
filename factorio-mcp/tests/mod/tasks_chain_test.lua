@@ -105,5 +105,18 @@ do -- a repeated request_id (lost reply, client retried) returns the first job i
   tasks.on_tick() tasks.on_tick()
 end
 
+do -- a runner may refuse a task at enqueue time (build_blueprint's provenance gate): no job, nothing cancelled
+  runner.validate = function(t) if t.refuse then error("not allowed: " .. t.refuse, 0) end end
+  local running = tasks.enqueue({ task = { type = "walk_to" }, background = true, chain = "val" })
+  local before = storage.tasks.next_id
+  local ok, err = pcall(tasks.enqueue, { task = { type = "walk_to", refuse = "string" }, replace = true, chain = "val" })
+  check(not ok and tostring(err):find("not allowed: string", 1, true), "validate: the refusal reaches the caller")
+  check(storage.tasks.next_id == before, "validate: a refused task gets no job id")
+  check(#storage.tasks.by_companion["AI"].queue == 1, "validate: a refused replace=true leaves the lane alone")
+  runner.validate = nil
+  tasks.on_tick()
+  check(status_of(running.task_id) == "done", "validate: the earlier job still ran")
+end
+
 print(failures == 0 and "\nALL TESTS PASSED" or ("\n" .. failures .. " FAILURES"))
 os.exit(failures == 0 and 0 or 1)

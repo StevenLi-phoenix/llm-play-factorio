@@ -53,4 +53,11 @@ data:extend({
     maximum_value = 16,
     order = "f",
   },
+  {
+    type = "bool-setting",
+    name = "factorio-mcp-enforce-blueprint-provenance",
+    setting_type = "runtime-global",
+    default_value = true,
+    order = "g",
+  },
 })

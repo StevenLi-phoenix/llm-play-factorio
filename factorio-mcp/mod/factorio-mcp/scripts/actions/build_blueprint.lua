@@ -14,6 +14,14 @@ local M = {}
 -- Machine-generated steps, so far beyond build_plan's hand-written cap.
 local MAX_ENTITIES = 1000
 
+-- Called when the job is enqueued: an export string must pass the provenance
+-- gate (scripts/bp_registry.lua); a carried blueprint (label) is not gated.
+function M.validate(task)
+  if type(task.string) == "string" and task.string ~= "" then
+    blueprint.check_string(task.string)
+  end
+end
+
 function M.start(task)
   companion.require_companion()
   local anchor = task.anchor

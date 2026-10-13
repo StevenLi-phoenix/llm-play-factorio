@@ -35,7 +35,7 @@ Every scoped response — success or error — except `heartbeat` carries an opt
 
 ## Scoping and binding
 
-Every method except `ping`, `echo`, `get_chunk` and `bind` must carry `companion` (the character name) and `session` (the MCP instance's token). The mod checks that this session holds the binding, then refreshes the lease. Calls from anything else fail with `this MCP session does not hold character …`.
+Every method except `ping`, `echo`, `get_chunk`, `bind` and the harness RPCs (`register_blueprint`, `list_registered_blueprints`, `area_snapshot`, 0.2.23+, see below) must carry `companion` (the character name) and `session` (the MCP instance's token). The mod checks that this session holds the binding, then refreshes the lease. Calls from anything else fail with `this MCP session does not hold character …`.
 
 | Method | Params | Result |
 |---|---|---|
@@ -66,13 +66,57 @@ All results are filtered by fog of war (`scripts/vision.lua`):
 | `describe_prototype {names≤10}` | Static prototype data |
 | `production_stats {window, names?, kind?, top?}` | Force item and fluid flows on the character's surface. `window` ∈ 5s, 1m, 10m, 1h, 10h, 50h, 250h, 1000h. Returns `produced_per_min`, `consumed_per_min`, `net_per_min` and all-time totals |
 | `list_technologies {status?, search?}` | Every technology for the force: internal name (exactly what `start_research` takes), display label, status (researched / in-progress / queued / available / trigger / locked), prerequisites (missing ones named), the total research bill per science pack, and per-unit time at one speed-1 lab (derived as unit energy / 60). `status` filters (default `available` — the unlocked-but-unresearched set), `search` is a name substring; the live research queue in order ([1] = in progress) is always included |
-| `list_trains`, `list_blueprints`, `read_blueprint`, `import_blueprint {string}` | Blueprints: only ones the character carries, or export strings |
-| `export_blueprint {area: [{x,y},{x,y}]}` | Own buildings in a known area of at most 200×200 tiles. Returns `{string, entity_counts, total_entities, size, anchor}` |
+| `list_trains`, `list_blueprints`, `read_blueprint`, `import_blueprint {string}` | Blueprints: only ones the character carries, or export strings. A string must pass the provenance gate (0.2.23+): its layout has to be in the blueprint registry, else the call fails with `this blueprint string is not allowed: the run rules only allow blueprints exported from the map (export_blueprint) or compiled from your own in-run layout…`. Carried blueprints are never gated |
+| `export_blueprint {area: [{x,y},{x,y}]}` | Own buildings in a known area of at most 200×200 tiles. Returns `{string, entity_counts, total_entities, size, anchor}`. The layout is registered (source `export`, 0.2.23+) so the string passes the provenance gate |
 | `get_chat {since_id}` | Everything after the cursor except this character's own lines. Agent lines have `bot: true` |
 | `get_events {since_id}` | Events for this character plus force-wide ones (`job_done`, `job_failed`, `attacked`, `died`, `research_finished`, `supply_warning`, `under_attack`, `destroyed`, `craft_cancelled`). Combat: character damage is throttled to one `attacked` per 5s; other force entities' damage is aggregated into one force-wide `under_attack` per 5s window (worst first), and a force entity's death pushes `destroyed` immediately with the cause |
 
 | `route_belt {from, to, belt?, allow_underground?, clear_obstacles?, margin?, avoid?, planned_belts?}` | Plans one belt line on known ground (see `scripts/route/`). An endpoint is `{x, y, direction?, port}` with `port` ∈ `tile`, `drop`, `pickup`, `belt` or `fluid` (inserter/drill drop tile, inserter pickup tile, join an existing belt). `allow_underground` nil means: if carried or the recipe is enabled. The search box is the endpoints' bounding box plus `margin` (2–40), at most 160 tiles a side. Returns `steps [{item, x, y, direction, underground_type?}]`, `bill`, `missing`, `unavailable`, `mine_first` (trees and rocks on the path), `effects` (what joining the target belt does), `length`, `turns`, `underground_pairs`, `expansions`. No side effects: the MCP server turns the steps into mine and `build_plan` jobs when `build=true` |
 | `route_pipe {…}` | The same for pipes and pipe-to-ground. It never runs next to a foreign fluid connection, so fluids don't mix |
+
+## Harness RPCs (0.2.23+)
+
+Tooling for the run's own harness (blueprint compiler, schematic renderer). They are **unscoped** (no `companion` or `session`, callable like `ping`) and the MCP server has no tool for them, so agents cannot reach them. The Python side is `Bridge.register_blueprint` / `list_registered_blueprints` / `area_snapshot` (also on `Game`, which binds no character for them) and the CLI commands `snapshot`, `register-blueprint` and `blueprint-registry`.
+
+### Blueprint provenance
+
+`import_blueprint {string}` and `build_blueprint` (at enqueue, and again when the job starts) given a `string` refuse a layout that is not in `storage.bp_registry`, unless the runtime-global mod setting `factorio-mcp-enforce-blueprint-provenance` is off (default on). A refused `build_blueprint` is an enqueue error, not a failed job. Carried blueprints (`label`) are not gated.
+
+Registry key: a 128-bit non-cryptographic hash (four multiply-add lanes modulo primes just under 2^32; 32 hex digits) of this canonical text:
+
+```
+helpers.table_to_json({1, entity_lines, tile_lines})        // both lists sorted as plain strings
+entity line   name|x|y|dir|recipe|type|input_priority|output_priority|filter|quality
+tile line     name|x|y
+```
+
+- Positions are shifted so the smallest x and the smallest y over the blueprint's entities (over the tiles when there are none) are 0, and written with two decimals (`%.2f`).
+- `dir` is `direction` (north when absent); `type` is the underground belt / loader `input` or `output`; `recipe`, the splitter priorities and filter, and `quality` (empty for normal) are empty when absent; tables are flattened with sorted keys.
+- Entity numbers, labels, icons, the version, the position on the map and the string's encoding are not part of the key.
+
+| Method | Params | Result |
+|---|---|---|
+| `register_blueprint` | `{string, source, note?, character?}` | Decodes the string (one blueprint, not a book; at least one entity or tile) and records its layout: `{key_hash, entity_count, already_registered}`. The first registration of a layout wins (`source` up to 64 characters, `note` up to 300) |
+| `list_registered_blueprints` | — | `{enforced, total, blueprints: [{key_hash, source, character?, tick, entity_count, note?}]}`, oldest first |
+
+### area_snapshot
+
+`area_snapshot {x1, y1, x2, y2}` (at most 200×200 tiles) is instant and read-only and reports only **explored** ground (`scripts/vision.lua`). It is built for a schematic renderer and replies through the chunked mechanism when large.
+
+```
+{ "tick": int, "area": [x1,y1,x2,y2],
+  "unexplored_chunks": [[cx,cy],...],        // chunks overlapping the area that are not explored
+  "entities": [{ "name", "type", "x", "y", "dir": 0..15, "box": [l,t,r,b], "force",
+                 "status"?, "recipe"?, "ug"?: "input"|"output", "pickup"?: [x,y], "drop"?: [x,y],
+                 "out"?: [x,y], "ghost"?: true, "label"? }],
+  "resources": { "iron-ore": [[x,y,amount],...], ... },   // x,y = tile top-left integers
+  "water": [[x,y],...],                                  // tiles that collide with water_tile
+  "obstacles": [[l,t,r,b,"tree"|"rock"|"cliff"],...] }
+```
+
+- `entities` are all entities on explored ground except resources, trees, rocks (`simple-entity`), cliffs and ground litter (item entities, corpses, effects). Other forces' entities are included with their `force`. They are sorted by y, then x.
+- `box` is the world-space `bounding_box` (already rotated); `status` is the key name of `defines.entity_status`; `recipe` is set on crafting machines and furnaces (a furnace's previous recipe when idle); `pickup` / `drop` on inserters; `out` (the drill's `drop_position`) on mining drills; a ghost reports `ghost_name` / `ghost_type` as `name` / `type`; `label` names an agent character.
+- Coordinates have two decimals. The game serializes an empty list as `{}`; the Python helper turns those into `[]` and rounds float dust.
 
 ## Instant actions
 

@@ -18,7 +18,10 @@ from typing import Any
 from .rcon import RconClient, RconError
 
 PROTOCOL_VERSION = 6
-UNSCOPED = {"ping", "echo", "get_chunk", "bind"}
+# Methods that need no character or session. The last three are harness RPCs
+# (blueprint compiler, schematic renderer), deliberately not MCP tools.
+UNSCOPED = {"ping", "echo", "get_chunk", "bind", "register_blueprint", "list_registered_blueprints",
+            "area_snapshot"}
 # Safe to send again when the reply was lost: they change nothing, or they
 # are idempotent (enqueue carries a request_id the mod de-duplicates).
 # get_chat/get_events are not: they advance read cursors.
@@ -27,7 +30,8 @@ RETRY_SAFE = {
     "get_state", "check_inventory", "inspect", "analyze_factory", "scan_area", "can_place",
     "find_buildable_area", "describe_prototype", "production_stats", "list_trains", "list_blueprints",
     "read_blueprint", "import_blueprint", "export_blueprint", "route_belt", "route_pipe", "get_task",
-    "list_tasks", "layout_context", "map_overview",
+    "list_tasks", "layout_context", "map_overview", "register_blueprint", "list_registered_blueprints",
+    "area_snapshot",
 }
 # Waits between attempts after a connection failure: covers a server restart (~15 s).
 RETRY_DELAYS_S = (0.5, 2.0, 5.0, 10.0)
@@ -195,6 +199,31 @@ class Bridge:
             res = await self.job(job_id)
         return res
 
+    # ------------------------------------------------- harness RPCs (unscoped)
+
+    async def register_blueprint(self, string: str, source: str, note: str | None = None) -> dict[str, Any]:
+        """Records a blueprint string's layout as made during the run, so the
+        mod's provenance gate lets import_blueprint / build_blueprint take it.
+        Meant for the layout compiler; agents have no tool for this. Returns
+        {key_hash, entity_count, already_registered}."""
+        params: dict[str, Any] = {"string": string, "source": source}
+        if note:
+            params["note"] = note
+        return await self.call("register_blueprint", params)
+
+    async def list_registered_blueprints(self) -> dict[str, Any]:
+        """The provenance registry for auditing: {enforced, total, blueprints:
+        [{key_hash, source, character, tick, entity_count, note}]}."""
+        r = await self.call("list_registered_blueprints", {})
+        r["blueprints"] = as_list(r.get("blueprints"))
+        return r
+
+    async def area_snapshot(self, x1: float, y1: float, x2: float, y2: float) -> dict[str, Any]:
+        """A JSON picture of a rectangle (at most 200x200 tiles) on explored
+        ground, for a schematic renderer; needs no bound character. Lists the
+        mod sent empty come back as [] (see normalize_snapshot)."""
+        return normalize_snapshot(await self.call("area_snapshot", {"x1": x1, "y1": y1, "x2": x2, "y2": y2}))
+
     # --------------------------------------------------------- chat/events
 
     # The read cursors live in the mod, per character: a new MCP session for
@@ -218,3 +247,26 @@ def as_list(v: Any) -> list[Any]:
     if isinstance(v, dict):
         return list(v.values())
     return []
+
+
+def _round2(v: Any) -> Any:
+    """Floats to two decimals, recursively. The game's Lua parses "-0.91" one
+    ulp off, so positions would otherwise read -0.9099999999999999."""
+    if isinstance(v, float):
+        return round(v, 2)
+    if isinstance(v, list):
+        return [_round2(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _round2(x) for k, x in v.items()}
+    return v
+
+
+def normalize_snapshot(snap: dict[str, Any]) -> dict[str, Any]:
+    """Empty lists in an area_snapshot reply arrive as {}; make them [] (and
+    `resources` an object), so the JSON has one shape however sparse the area.
+    Coordinates are rounded to two decimals (see _round2)."""
+    for key in ("unexplored_chunks", "entities", "water", "obstacles"):
+        snap[key] = as_list(snap.get(key))
+    res = snap.get("resources")
+    snap["resources"] = {name: as_list(rows) for name, rows in res.items()} if isinstance(res, dict) else {}
+    return _round2(snap)

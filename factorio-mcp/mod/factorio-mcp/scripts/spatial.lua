@@ -64,6 +64,8 @@ local function is_water_at(surface, x, y)
   return tile_is_water(tile)
 end
 
+M.is_water_at = is_water_at
+
 -- Normalize a Factorio Vector ({x=,y=} or {1,2}) to a plain {x, y} table.
 local function vec_xy(v)
   if type(v) ~= "table" then return nil end

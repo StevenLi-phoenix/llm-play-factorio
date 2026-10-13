@@ -169,6 +169,10 @@ function M.enqueue(params)
   end
   local name = companion.context()
   companion.require_companion(name)
+  -- A runner may refuse a task up front (build_blueprint: a string that fails
+  -- the provenance gate), so the agent hears it now, not from a failed job.
+  local runner = runners[task.type]
+  if runner.validate then runner.validate(task) end
   -- A client that lost the reply to an enqueue (dropped RCON connection) sends
   -- the same request_id again; answer with the job the first attempt made.
   local rid = params.request_id and tostring(params.request_id)

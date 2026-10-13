@@ -24,6 +24,7 @@ local status = require("scripts.status")
 local warnings = require("scripts.warnings")
 local alerts = require("scripts.alerts")
 local combat = require("scripts.combat")
+local snapshot = require("scripts.snapshot")
 
 local PROTOCOL_VERSION = 6
 
@@ -94,6 +95,10 @@ rpc.register("import_blueprint", blueprint.import)
 rpc.register("list_blueprints", blueprint.list)
 rpc.register("read_blueprint", blueprint.read)
 rpc.register("export_blueprint", blueprint.export)
+-- tooling RPCs, callable without a bound character and not exposed as MCP tools
+rpc.register("register_blueprint", blueprint.register)
+rpc.register("list_registered_blueprints", blueprint.list_registered)
+rpc.register("area_snapshot", snapshot.area_snapshot)
 rpc.register("route_belt", route.route_belt)
 rpc.register("route_pipe", route.route_pipe)
 

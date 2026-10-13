@@ -34,7 +34,7 @@ def run_one(path: Path) -> tuple[int, list[str]]:
     """Returns (exit code the test asked for, its printed lines)."""
     lua = LuaRuntime(unpack_returned_tuples=True)
     lua.execute(EXIT_SHIM)
-    lua.execute(f"arg = {{ [0] = '{path}' }}")
+    lua.execute(f"arg = {{ [0] = '{path.as_posix()}' }}")
     lines: list[str] = []
 
     def collect(*parts: object) -> None:
@@ -43,7 +43,7 @@ def run_one(path: Path) -> tuple[int, list[str]]:
     lua.globals()["print"] = collect
     rc = 0
     try:
-        lua.execute(f'dofile("{path}")')  # a test error (not os.exit) raises
+        lua.execute(f'dofile("{path.as_posix()}")')  # a test error (not os.exit) raises
     except Exception as e:
         lines.append(f"(lua error: {str(e)[:300]})")
         rc = 1

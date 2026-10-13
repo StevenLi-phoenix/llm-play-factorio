@@ -71,6 +71,8 @@ if ok then
   check(rpc.handlers["map_warnings"] ~= nil, "map_warnings is registered")
   check(rpc.handlers["alerts"] ~= nil and rpc.handlers["battle_report"] ~= nil, "combat RPCs are registered")
   check(rpc.handlers["check_inventory"] ~= nil and rpc.handlers["enqueue"] ~= nil, "core RPCs are registered")
+  check(rpc.handlers["register_blueprint"] ~= nil and rpc.handlers["list_registered_blueprints"] ~= nil
+    and rpc.handlers["area_snapshot"] ~= nil, "the harness RPCs (blueprint registry, area snapshot) are registered")
 end
 
 -- The doctrine, enforced on the source: engine-side event filters are

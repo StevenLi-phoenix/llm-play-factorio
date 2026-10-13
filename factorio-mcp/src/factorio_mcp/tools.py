@@ -587,7 +587,8 @@ def register(app: MCPServer, game: Game) -> None:
         return fmt.blueprint(await game.call("read_blueprint", {"label": label, "book": book, "offset": offset, "limit": limit}))
 
     @tool("Decode a blueprint export string into relative entity positions (top-left entity at 0,0), directions, "
-          "recipes and the item bill. Does not build.")
+          "recipes and the item bill. Does not build. Takes only strings made during the run: ones export_blueprint "
+          "returned, or compiled from your own layout; any other string is refused.")
     async def import_blueprint(
         string: Annotated[str, Field(min_length=10)],
         offset: Annotated[int, Field(ge=0)] = 0,
@@ -948,11 +949,12 @@ def register(app: MCPServer, game: Game) -> None:
     dry_run_plan = dry_run
 
     @tool("Build a whole blueprint as ONE job, anchored so its top-left entity lands at (anchor_x, anchor_y): from an "
-          "export string, or a carried blueprint by label. Up to 1000 entities; per-step failures are reported.")
+          "export string, or a carried blueprint by label. A string must have been made during the run (export_blueprint, or "
+          "compiled from your own layout); any other is refused. Up to 1000 entities; per-step failures are reported.")
     async def build_blueprint(
         anchor_x: Coord,
         anchor_y: Coord,
-        string: Annotated[str | None, Field(description="blueprint export string")] = None,
+        string: Annotated[str | None, Field(description="blueprint export string made during the run")] = None,
         label: str | None = None,
         book: str | None = None,
         stop_on_error: bool = False,

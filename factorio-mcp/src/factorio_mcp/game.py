@@ -61,6 +61,7 @@ class Game:
         self._notice: str | None = None
         self._mod_version: tuple[int, ...] | None = None
         self._probe_at: float | None = None  # last version-probe attempt (monotonic)
+        self._unlocked = False  # first Lua command accepted (see Bridge.unlock)
         self._bridge.rebind = self._rebind
 
     # The job queue: every job this character is given joins one chain, so a
@@ -256,6 +257,23 @@ class Game:
                 # fails loudly unless takeover is configured).
                 self.lost_binding()
             raise
+
+    # Harness RPCs (unscoped): no character is bound or created, so a renderer
+    # or compiler can use a Game with nothing but the RCON settings.
+    async def _unscoped_bridge(self) -> Bridge:
+        if not self._unlocked:
+            await self._bridge.unlock()
+            self._unlocked = True
+        return self._bridge
+
+    async def register_blueprint(self, string: str, source: str, note: str | None = None) -> dict[str, Any]:
+        return await (await self._unscoped_bridge()).register_blueprint(string, source, note)
+
+    async def list_registered_blueprints(self) -> dict[str, Any]:
+        return await (await self._unscoped_bridge()).list_registered_blueprints()
+
+    async def area_snapshot(self, x1: float, y1: float, x2: float, y2: float) -> dict[str, Any]:
+        return await (await self._unscoped_bridge()).area_snapshot(x1, y1, x2, y2)
 
     async def heartbeat_loop(self) -> None:
         while True:

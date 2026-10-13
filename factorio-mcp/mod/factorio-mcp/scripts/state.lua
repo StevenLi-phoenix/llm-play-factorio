@@ -36,6 +36,9 @@ function M.init()
   -- last change per entity (unit_number) for the inspect_entity audit note
   -- (see scripts/provenance.lua): { by_unit = {}, order = {} }
   storage.provenance = storage.provenance or { by_unit = {}, order = {} }
+  -- blueprint provenance gate (see scripts/bp_registry.lua):
+  -- { by_hash = { [key_hash] = {source, character, tick, entity_count, note} } }
+  storage.bp_registry = storage.bp_registry or { by_hash = {} }
 end
 
 return M
