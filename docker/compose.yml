@@ -9,13 +9,14 @@ services:
     environment:
       DLC_SPACE_AGE: "false"               # image default is true; disables space-age/quality/elevated-rails
       GENERATE_NEW_SAVE: "true"            # only generates when saves/$SAVE_NAME.zip is absent
-      SAVE_NAME: run
+      SAVE_NAME: llm-run                   # not "run": --start-server resolves it relative to cwd and hits /run
       LOAD_LATEST_SAVE: "false"
     ports:
       - "34197:34197/udp"                  # game (user's client joins here)
       - "127.0.0.1:27015:27015/tcp"        # RCON, localhost only
     volumes:
       - ../runtime/factorio:/factorio
-      - ../factorio-mcp/mod/factorio-mcp:/factorio/mods/factorio-mcp:ro
+      # not :ro — the entrypoint runs `chown -R /factorio` under `set -e`
+      - ../factorio-mcp/mod/factorio-mcp:/factorio/mods/factorio-mcp
     restart: "no"
     stop_grace_period: 30s
