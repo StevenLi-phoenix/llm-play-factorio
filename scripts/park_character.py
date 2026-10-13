@@ -33,6 +33,9 @@ if c and c.valid then
     for i=1,#inv do local st=inv[i] if st.valid_for_read then local k=cinv.insert(st) if k>0 then st.count=st.count-k end end end
     placed=placed+1
   end
+  -- nothing left to make a chest from: spill the rest on the ground (pickable, marked for looting)
+  for i=1,#inv do local st=inv[i] if st.valid_for_read then
+    s.spill_item_stack{position=c.position,stack=st,enable_looted=true,force=c.force,allow_belts=false} st.clear() end end
   local left=inv.get_item_count()
   out="%s at "..math.floor(c.position.x)..","..math.floor(c.position.y).." chests="..placed.." leftover="..left
   if left==0 then c.destroy() out=out.." REMOVED" end
