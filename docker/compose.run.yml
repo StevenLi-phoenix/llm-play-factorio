@@ -1,0 +1,21 @@
+# Play server for an actual run. Separate from the dev server (compose.yml) so mod testing
+# never touches the live map. The mod is a frozen copy made by scripts/start_run.sh, so the
+# run's mod version cannot change mid-run.
+name: llm-factorio-run
+
+services:
+  factorio:
+    image: factoriotools/factorio:2.0.77
+    container_name: llm-factorio-run
+    environment:
+      DLC_SPACE_AGE: "false"
+      GENERATE_NEW_SAVE: "true"
+      SAVE_NAME: llm-run
+      LOAD_LATEST_SAVE: "false"
+    ports:
+      - "34199:34197/udp"                  # user's client joins localhost:34199
+      - "127.0.0.1:27017:27015/tcp"        # RCON, localhost only
+    volumes:
+      - ../runtime/run/factorio:/factorio
+    restart: "no"
+    stop_grace_period: 30s

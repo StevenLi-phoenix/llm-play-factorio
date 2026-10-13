@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Agent CLI for the play server: scripts/fa <character> <tool> '<json>' [<tool> '<json>' ...]
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+char="$1"; shift
+export FACTORIO_RCON_PORT=27017
+export FACTORIO_RCON_PASSWORD="$(cat "$ROOT/runtime/run/factorio/config/rconpw")"
+export FACTORIO_CHARACTER="$char"
+export PYTHONIOENCODING=utf-8
+exec "$ROOT/factorio-mcp/.venv/Scripts/factorio-mcp.exe" call "$@"
