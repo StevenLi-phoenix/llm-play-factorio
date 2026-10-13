@@ -1,0 +1,12 @@
+# game runtime volume (saves, rconpw, mods dir, logs)
+runtime/
+# extracted game data (copyrighted; regenerate with scripts/dump_prototypes.sh)
+data/game/
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+# render outputs
+out/
