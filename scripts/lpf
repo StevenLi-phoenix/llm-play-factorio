@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Agent wrapper for the schematic renderer against the play server.
+#   scripts/lpf render-area X1 Y1 X2 Y2 [--power] [--plan plan.json --dx N --dy N] [-o file.png]
+#   scripts/lpf render-plan plan.json [-o file.png]
+# Images default to runtime/run/workspace/renders/; read them with the Read tool.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export FACTORIO_RCON_PORT=27017
+export FACTORIO_RCON_PASSWORD="$(cat "$ROOT/runtime/run/factorio/config/rconpw")"
+export PYTHONIOENCODING=utf-8
+cmd="$1"; shift
+args=("$@")
+if [[ " ${args[*]} " != *" -o "* ]]; then
+  mkdir -p "$ROOT/runtime/run/workspace/renders"
+  args+=(-o "$ROOT/runtime/run/workspace/renders/${cmd#render-}-$(date +%H%M%S).png")
+fi
+exec "$ROOT/lpf/.venv/Scripts/lpf.exe" "$cmd" "${args[@]}"

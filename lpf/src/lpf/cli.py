@@ -4,6 +4,7 @@
   lpf render-plan plan.json [-o out.png]
   lpf render-blueprint (STRING | @file) [--index PATH] [-o out.png]
   lpf plan-to-blueprint plan.json            prints the blueprint string (register it in-game before use)
+  lpf rates ITEM=PER_MIN [ITEM=PER_MIN ...]   machines and raw inputs (L1 rate model)
   lpf protos --rebuild
 
 render-area fetches the snapshot with `factorio-mcp snapshot` against the server in FACTORIO_RCON_*.
@@ -79,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("plan-to-blueprint")
     c.add_argument("plan")
     c.add_argument("--label", default="plan")
+    rt = sub.add_parser("rates")
+    rt.add_argument("targets", nargs="+", help="item=per_minute")
     r = sub.add_parser("protos")
     r.add_argument("--rebuild", action="store_true")
     for s in (a, p, b):
@@ -86,6 +89,11 @@ def main(argv: list[str] | None = None) -> int:
         s.add_argument("--max-px", type=int, default=1024)
     args = ap.parse_args(argv)
 
+    if args.cmd == "rates":
+        from .rates import format_plan, rates
+        targets = {t.split("=")[0]: float(t.split("=")[1]) / 60 for t in args.targets}
+        print(format_plan(rates(targets)))
+        return 0
     if args.cmd == "protos":
         pr = Protos.load(rebuild=args.rebuild)
         print(f"{len(pr._table['entities'])} entity prototypes cached")
