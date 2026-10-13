@@ -22,7 +22,7 @@ pcall(function() f.research_queue=q end)
 local cur={} for _,t in pairs(f.research_queue) do cur[#cur+1]=t.name end
 local cnt={} for _,n in pairs(order) do local t=f.technologies[n] for _,u in pairs(t.research_unit_ingredients) do cnt[u.name]=(cnt[u.name] or 0)+u.amount*t.research_unit_count end end
 local c={} for k,v in pairs(cnt) do c[#c+1]=k:gsub("%%-science%%-pack","").."="..v end
-rcon.print(#order.." techs left; queue: "..table.concat(cur," > ").." | packs left: "..table.concat(c," "))"""
+rcon.print((f.current_research and (f.current_research.name.." "..math.floor(f.research_progress*100).."%%; ") or "idle; ")..#order.." techs left; queue: "..table.concat(cur," > ").." | packs left: "..table.concat(c," "))"""
 
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "rocket-silo"
