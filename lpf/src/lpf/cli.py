@@ -5,6 +5,8 @@
   lpf render-blueprint (STRING | @file) [--index PATH] [-o out.png]
   lpf plan-to-blueprint plan.json            prints the blueprint string (register it in-game before use)
   lpf rates ITEM=PER_MIN [ITEM=PER_MIN ...]   machines and raw inputs (L1 rate model)
+  lpf sim --agents N [--seed S] [--latency-median 25] [--json out.json]   plan-model rollout (Sim A, L2)
+  lpf sim-sweep --agents 1-16                 N vs time-to-launch and agent-hours
   lpf protos --rebuild
 
 render-area fetches the snapshot with `factorio-mcp snapshot` against the server in FACTORIO_RCON_*.
@@ -23,6 +25,7 @@ from . import blueprint as bpc
 from .protos import REPO_ROOT, Protos
 from .render import render
 from .scene import diff, from_blueprint, from_plan, from_snapshot
+from .sim.cli import add_sim_args, run_sim
 
 FACTORIO_MCP = REPO_ROOT / "factorio-mcp" / ".venv" / ("Scripts/factorio-mcp.exe" if os.name == "nt" else "bin/factorio-mcp")
 
@@ -82,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--label", default="plan")
     rt = sub.add_parser("rates")
     rt.add_argument("targets", nargs="+", help="item=per_minute")
+    add_sim_args(sub.add_parser("sim"))
+    add_sim_args(sub.add_parser("sim-sweep"), sweep_mode=True)
     r = sub.add_parser("protos")
     r.add_argument("--rebuild", action="store_true")
     for s in (a, p, b):
@@ -94,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
         targets = {t.split("=")[0]: float(t.split("=")[1]) / 60 for t in args.targets}
         print(format_plan(rates(targets)))
         return 0
+    if args.cmd in ("sim", "sim-sweep"):
+        return run_sim(args)
     if args.cmd == "protos":
         pr = Protos.load(rebuild=args.rebuild)
         print(f"{len(pr._table['entities'])} entity prototypes cached")

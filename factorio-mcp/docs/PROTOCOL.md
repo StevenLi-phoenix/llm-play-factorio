@@ -69,7 +69,7 @@ All results are filtered by fog of war (`scripts/vision.lua`):
 | `list_trains`, `list_blueprints`, `read_blueprint`, `import_blueprint {string}` | Blueprints: only ones the character carries, or export strings. A string must pass the provenance gate (0.2.23+): its layout has to be in the blueprint registry, else the call fails with `this blueprint string is not allowed: the run rules only allow blueprints exported from the map (export_blueprint) or compiled from your own in-run layout…`. Carried blueprints are never gated |
 | `export_blueprint {area: [{x,y},{x,y}]}` | Own buildings in a known area of at most 200×200 tiles. Returns `{string, entity_counts, total_entities, size, anchor}`. The layout is registered (source `export`, 0.2.23+) so the string passes the provenance gate |
 | `get_chat {since_id}` | Everything after the cursor except this character's own lines. Agent lines have `bot: true` |
-| `get_events {since_id}` | Events for this character plus force-wide ones (`job_done`, `job_failed`, `attacked`, `died`, `research_finished`, `supply_warning`, `under_attack`, `destroyed`, `craft_cancelled`). Combat: character damage is throttled to one `attacked` per 5s; other force entities' damage is aggregated into one force-wide `under_attack` per 5s window (worst first), and a force entity's death pushes `destroyed` immediately with the cause |
+| `get_events {since_id}` | Events for this character plus force-wide ones (`job_done`, `job_failed`, `attacked`, `died`, `research_finished`, `supply_warning`, `under_attack`, `destroyed`, `craft_cancelled`, `rocket_launched`). Combat: character damage is throttled to one `attacked` per 5s; other force entities' damage is aggregated into one force-wide `under_attack` per 5s window (worst first), and a force entity's death pushes `destroyed` immediately with the cause |
 
 | `route_belt {from, to, belt?, allow_underground?, clear_obstacles?, margin?, avoid?, planned_belts?}` | Plans one belt line on known ground (see `scripts/route/`). An endpoint is `{x, y, direction?, port}` with `port` ∈ `tile`, `drop`, `pickup`, `belt` or `fluid` (inserter/drill drop tile, inserter pickup tile, join an existing belt). `allow_underground` nil means: if carried or the recipe is enabled. The search box is the endpoints' bounding box plus `margin` (2–40), at most 160 tiles a side. Returns `steps [{item, x, y, direction, underground_type?}]`, `bill`, `missing`, `unavailable`, `mine_first` (trees and rocks on the path), `effects` (what joining the target belt does), `length`, `turns`, `underground_pairs`, `expansions`. No side effects: the MCP server turns the steps into mine and `build_plan` jobs when `build=true` |
 | `route_pipe {…}` | The same for pipes and pipe-to-ground. It never runs next to a foreign fluid connection, so fluids don't mix |
@@ -118,6 +118,58 @@ tile line     name|x|y
 - `box` is the world-space `bounding_box` (already rotated); `status` is the key name of `defines.entity_status`; `recipe` is set on crafting machines and furnaces (a furnace's previous recipe when idle); `pickup` / `drop` on inserters; `out` (the drill's `drop_position`) on mining drills; a ghost reports `ghost_name` / `ghost_type` as `name` / `type`; `label` names an agent character.
 - Coordinates have two decimals. The game serializes an empty list as `{}`; the Python helper turns those into `[]` and rounds float dust.
 
+## Rocket launch (0.2.24+)
+
+A rocket silo builds a rocket from 100 rocket parts (`LuaEntity.rocket_parts`; `prototype.rocket_parts_required`). The rocket then goes through the `defines.rocket_silo_status` phases up to `rocket_ready`; a silo without power stops in its opening phases.
+
+- **`launch_rocket {target}`** (job): walks within reach of the silo, then
+  - no rocket yet: fails at once, `can't launch: no rocket yet: 37/100 rocket parts …`;
+  - a rocket on its way up: waits (up to 120 s, then fails naming the phase and the silo status);
+  - `rocket_ready`: calls `LuaEntity.launch_rocket()` and waits for the `on_rocket_launched` event (up to 90 s), then reports tick, character and payload.
+- **Payload:** `insert` on the silo puts items into the rocket's cargo slot (`defines.inventory.rocket_silo_rocket`, one slot). The slot exists, and takes items, before the rocket does. `extract` takes them out again. The rocket and cargo-pod entities that stand on a silo are skipped when a point is resolved, so the silo is the target.
+- **Progress:** `get_state` lists `rocket_silos` on known ground — `{x, y, parts, parts_required, phase, has_rocket, ready, launching, status, cargo}` — and `inspect` of a silo carries the same as `rocket`. Both are shown by the `status` and `inspect_entity` tools.
+- **Result:** `on_rocket_launched` records `{tick, seconds, character?, player?, payload, silo, launch_number}` in `storage.rocket.launches`; the first launch is `storage.run_result` (and appears in `get_state` as `rocket_launched`). It also
+  - writes `script-output/run-result.json` on the server only (`helpers.write_file` for player 0, overwritten on each launch; it holds the first launch's fields plus `launches` and `mod_version`),
+  - prints `ROCKET LAUNCHED at tick … by …, payload: …` to everyone, adds it to the chat log as a `server` line,
+  - and pushes a force-wide `rocket_launched` event, so it rides the news footer of every tool result.
+  The character is the one whose `launch_rocket` job called the silo within the last 3 minutes; a launch by a human has `player` instead.
+
+## Replay log (0.2.24+)
+
+With the runtime-global setting `factorio-mcp-rpc-log` (default on), `rpc.dispatch` appends every RPC to `script-output/rpc-log/<run-id>.jsonl` on the server (`helpers.write_file`, player 0, append) **before** the handler runs. `run-id` is `run-<map seed>`; `scripts/new_run.sh` wipes `script-output`, so a new run starts a new file.
+
+```
+{"header":true,"run_id":"run-4285574714","seed":"4285574714","tick":457,"mod_version":"0.2.24","factorio_version":"2.0.77","log_format":1,"settings":{…every factorio-mcp setting…}}
+{"tick":457,"method":"ping","character":null,"params":{}}
+{"tick":1273,"method":"enqueue","character":"coal","params":{"task":{…},"request_id":"…","chain":"…","companion":"coal","session":"…"}}
+```
+
+- The header opens the file and is written again after each mod version change. `params` is the JSON text the MCP server sent, verbatim. `character` is `params.companion` (or `params.name` for `bind`). Every method is logged, reads included, except `get_chunk`.
+- `tick` is `game.tick` inside the RPC.
+
+What a replay runner needs:
+- **Start from the same map:** the same seed and map settings, the same mod version and mod settings (the header), and the same save state when the log starts. The log is the *inputs* only; it does not contain the initial save.
+- **Order inside a tick (measured on 2.0.77):** an RPC with `tick` T runs *between* ticks: after every `on_tick` / `on_nth_tick` handler of tick T-1 and before those of tick T. A replayer must issue the commands of tick T in file order and only then let tick T run (`game.tick` already reads T inside the command, and the handler of T has not run yet). Several RPCs in the same tick run in the order of the file.
+- **Replay all of it:** reads change state. `get_chat` / `get_events` advance read cursors; scoped calls refresh the session lease and update the ALERTS baseline (`storage.alert_seen`); `bind` and `heartbeat` carry the leases. Session tokens are random per MCP process — only their equality matters, so a runner may map them to fresh ones as long as it keeps them consistent. `request_id`s are de-duplicated for 5 minutes of ticks.
+- **Rollbacks:** a server restart reloads the last autosave and the log keeps growing, so the file contains the rolled-back stretch too. A record whose `tick` is lower than the one before it starts a new segment; a runner should drop everything from the earlier segment at or after that tick (and a second header marks a mod-version change).
+- **Not in the log:** things humans do (chat, `/follow`, joining; humans are spectators and cannot change the map, but their *presence* feeds `vision.is_visible` and `get_state.players`, which agents read), console commands, and the mod's own on_tick work, which is derived from the inputs.
+- **Nondeterminism to watch:**
+  - the *real-time arrival* of an RPC is nondeterministic, but its tick is recorded, and ticks are all that matter once the commands are replayed at those ticks;
+  - pathfinding is asynchronous (`request_path` answers arrive in later ticks, paced by the pathfinder budget in `map_settings`, which the mod writes from the `pathfinder-budget` setting) — deterministic in the engine, but only if that setting and the other agents' simultaneous requests are the same;
+  - `pairs` over tables keyed by string (lane order in `tasks.on_tick`, `companion` records) has an order the engine fixes for a given construction history; it is not guaranteed to survive a save/load, so jobs of different characters in one tick could run in another order after a reload (they touch separate characters, but they share the map);
+  - `game.tick`-dependent paths: binding lease (`LEASE_TICKS`), `request_id` TTL, chunked reply expiry, chart/ALERTS caches (30 ticks), combat window aggregation (5 s), the 120/300/600-tick housekeeping handlers;
+  - no `math.random`, wall-clock or `game.ticks_played` use was found in the mod (`grep` over `scripts/`), and `rendering` / `game.print` affect nothing but display.
+
+## Humans spectate (0.2.24+)
+
+With `factorio-mcp-humans-spectate` (runtime-global, default on), a player who joins (`on_player_joined_game`), every player when the setting is turned on or the mod starts, and any player found with a character by a 5-second sweep, gets `set_controller{type = spectator}`. The character the freeplay scenario gave them is **destroyed** (items and all), so it cannot be used as an item source; the characters of agents are never touched, and neither are players already in remote view (`/follow` uses the remote controller). Offline players are included in the sweep.
+
+## Save archive (0.2.24+)
+
+With `factorio-mcp-archive-minutes` N > 0 (runtime-global, default 10, 0 = off), every N minutes of game time (checked every 10 s) the mod calls `game.server_save("archive-<tick, 9 digits>")`, which writes `saves/archive-<tick>.zip` next to the autosaves (`runtime/factorio/saves/` for the Docker setup). Nothing overwrites these files, so the run's whole history stays on disk. The tick of the last one is `storage.archive.last_tick`.
+
+Measured on the headless 2.0.77 server: `game.server_save` called in the same tick as an autosave is dropped without an error (the autosave runs, the archive never appears), and the two line up whenever the interval is a multiple of the autosave interval (both count from the session start). So each archive is requested twice, one check (10 s) apart, under the same name; if both succeed the second rewrites the file with the state 10 s later. Saves requested outside an autosave tick work from a mod event handler as well as from the console.
+
 ## Instant actions
 
 `say {text}`, `start_research {technology}`, `cancel_research {technology}`, `equip {gun?, ammo?, armor?}`, `exit_vehicle`, `set_train_schedule {train_id, stops}`.
@@ -144,6 +196,7 @@ Task types:
 - inventory transfers: `insert`, `extract`
 - ground: `pick_up` — collect item-entities within a `radius` (≤25) of a `target` (default: where the character stands), walking over them into the inventory; characters do not collect by walking past
 - building: `build_plan`, `build_blueprint`, `deconstruct`
+- the end of the run: `launch_rocket` — `{target: {x, y}}`, a point on the silo (0.2.24+); see "Rocket launch"
 - combat and upkeep: `fight`, `defend_area`, `keep_fueled`
 
 Every task with a map target walks within reach first, and each movement goal is checked against the exploration rule.

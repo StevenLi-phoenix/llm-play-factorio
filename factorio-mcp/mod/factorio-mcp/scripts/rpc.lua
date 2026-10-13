@@ -13,6 +13,7 @@
 -- compiler, schematic renderer): never MCP tools, callable with no character.
 local companion = require("scripts.companion")
 local alerts = require("scripts.alerts")
+local rpc_log = require("scripts.rpc_log")
 
 local M = {}
 
@@ -77,6 +78,8 @@ function M.dispatch(method, params_json)
     end
     params = decoded
   end
+  -- the input log for replay: written before the call runs (scripts/rpc_log.lua)
+  rpc_log.record(method, params_json, params)
   -- Ambient alerts (see scripts/alerts.lua): every scoped response except
   -- heartbeat carries the one-line digest of what changed in the force's
   -- warning counts. heartbeat is a transport keepalive the agent never

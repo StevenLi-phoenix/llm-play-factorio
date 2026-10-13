@@ -29,8 +29,14 @@ def _amount(x) -> float:
 
 
 @lru_cache(maxsize=1)
+def raw_dump() -> dict:
+    """The parsed dump (shared with lpf.sim; call raw_dump.cache_clear() to release the memory)."""
+    return json.loads((game_data_dir() / "data-raw-dump.json").read_text(encoding="utf-8"))
+
+
+@lru_cache(maxsize=1)
 def _data():
-    d = json.loads((game_data_dir() / "data-raw-dump.json").read_text(encoding="utf-8"))
+    d = raw_dump()
     speeds = {}
     for t in ("assembling-machine", "furnace", "rocket-silo"):
         for n, p in d.get(t, {}).items():

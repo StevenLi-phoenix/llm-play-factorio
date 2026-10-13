@@ -5,10 +5,13 @@ local vision = require("scripts.vision")
 local approach = require("scripts.actions.approach")
 local provenance = require("scripts.provenance")
 local belts = require("scripts.belts")
+local rocket = require("scripts.rocket")
 
 local M = {}
 
 local SEARCH_RADIUS = 1.5
+-- a rocket standing in its silo: inspecting the silo is meant (its rocket info is on it)
+local ROCKET_PARTS = { ["rocket-silo-rocket"] = true, ["rocket-silo-rocket-shadow"] = true, ["cargo-pod"] = true }
 
 local function round1(v)
   return math.floor(v * 10 + 0.5) / 10
@@ -256,7 +259,7 @@ local function locate(params)
   local candidates = vision.filter_perceivable(
     surface.find_entities_filtered({ position = target, radius = SEARCH_RADIUS }), surface, c.force)
   local best, note = approach.pick_entity(candidates, target,
-    function(e) return e.type ~= "character" and e.type ~= "resource" end)
+    function(e) return e.type ~= "character" and e.type ~= "resource" and not ROCKET_PARTS[e.type] end)
   local best_res = approach.pick_entity(candidates, target, function(e) return e.type == "resource" end)
   local best_char = approach.pick_entity(candidates, target, function(e) return e.type == "character" end)
   local entity = best or best_res or best_char
@@ -322,6 +325,9 @@ local function inspect_one(params)
   end)
 
   if e.type == "resource" then out.amount = e.amount end
+
+  -- Rocket silos: parts built, the rocket's phase, and the cargo it carries.
+  if e.type == "rocket-silo" then out.rocket = rocket.silo_info(e) end
 
   -- Mining drills: the resource under the drill and how much is left in its
   -- mining area.

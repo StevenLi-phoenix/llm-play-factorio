@@ -39,6 +39,14 @@ function M.init()
   -- blueprint provenance gate (see scripts/bp_registry.lua):
   -- { by_hash = { [key_hash] = {source, character, tick, entity_count, note} } }
   storage.bp_registry = storage.bp_registry or { by_hash = {} }
+  -- rocket launches (see scripts/rocket.lua): every launch, and calls that
+  -- are about to launch (silo unit_number -> {character, tick, cargo});
+  -- storage.run_result is the first launch, the run's result
+  storage.rocket = storage.rocket or { launches = {}, pending = {} }
+  -- RPC input log (scripts/rpc_log.lua): run id, seed, version of the last header
+  storage.rpc_log = storage.rpc_log or {}
+  -- save archive (scripts/archive.lua): tick of the last archive save
+  storage.archive = storage.archive or { last_tick = 0, count = 0 }
 end
 
 return M

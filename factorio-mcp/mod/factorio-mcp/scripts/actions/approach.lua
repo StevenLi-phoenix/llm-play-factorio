@@ -95,7 +95,9 @@ end
 -- Nearest operable entity around a target position (for insert/extract/
 -- rotate/set_recipe). Skips the companion itself and things those actions
 -- never apply to.
-local SKIP_TYPES = { character = true, resource = true, tree = true, ["item-entity"] = true }
+-- The rocket entities stand on top of their silo while one is built: the silo is meant.
+local SKIP_TYPES = { character = true, resource = true, tree = true, ["item-entity"] = true,
+  ["rocket-silo-rocket"] = true, ["rocket-silo-rocket-shadow"] = true, ["cargo-pod"] = true }
 
 -- Does the entity's footprint contain pos?
 local function covers(e, pos)

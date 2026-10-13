@@ -102,9 +102,34 @@ def state(s: dict[str, Any]) -> str:
     if prod:
         lines.append("Top production (last minute): " + "; ".join(
             f"{n} {num(v['produced_per_min'])}/min made, {num(v['consumed_per_min'])}/min used" for n, v in prod.items()) + ".")
+    for silo in as_list(s.get("rocket_silos")):
+        lines.append(f"Rocket silo at ({num(silo['x'])}, {num(silo['y'])}): {silo_text(silo)}.")
+    done = s.get("rocket_launched")
+    if done:
+        who = f" by {done['character']}" if done.get("character") else (f" by {done['player']}" if done.get("player") else "")
+        lines.append(f"ROCKET LAUNCHED at tick {done['tick']}{who}, payload: {items_text(done.get('payload')) or 'nothing'}.")
     if s.get("explored_chunks") is not None:
         lines.append(f"Explored chunks: {s['explored_chunks']}.")
     return "\n".join(lines)
+
+
+def silo_text(r: dict[str, Any]) -> str:
+    """A rocket silo's progress: rocket parts, whether a rocket exists and is ready, its cargo."""
+    parts = f"{r.get('parts', 0)}/{r.get('parts_required', 100)} rocket parts"
+    phase = str(r.get("phase") or "").replace("_", " ")
+    if r.get("launching"):
+        text = f"launching ({phase})"
+    elif r.get("ready"):
+        text = "a rocket is READY to launch"
+    elif r.get("has_rocket"):
+        text = f"a rocket is being prepared ({phase})"
+    else:
+        text = f"no rocket yet, {parts}"
+    cargo = items_text(r.get("cargo"))
+    out = text + (f"; cargo: {cargo}" if cargo else ("; cargo: empty" if r.get("has_rocket") else ""))
+    if r.get("status") and r["status"] not in ("working", "normal"):
+        out += f"; silo status: {r['status'].replace('_', ' ')}"
+    return out
 
 
 def inspect(e: dict[str, Any]) -> str:
@@ -126,6 +151,8 @@ def inspect(e: dict[str, Any]) -> str:
         parts.append(f"Energy buffer: {num(e['energy_kj'])} kJ.")
     if e.get("amount") is not None:
         parts.append(f"Resource amount left: {num(e['amount'])}.")
+    if e.get("rocket"):
+        parts.append(f"Rocket: {silo_text(e['rocket'])}.")
     if e.get("ore_remaining") is not None:
         target = f" (mining {e['mining_target']})" if e.get("mining_target") else ""
         parts.append(f"Ore left in its mining area: {num(e['ore_remaining'])} in {e.get('ore_tiles', 0)} tiles{target}.")

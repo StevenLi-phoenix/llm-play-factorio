@@ -25,6 +25,9 @@ local warnings = require("scripts.warnings")
 local alerts = require("scripts.alerts")
 local combat = require("scripts.combat")
 local snapshot = require("scripts.snapshot")
+local rocket = require("scripts.rocket")
+local spectators = require("scripts.spectators")
+local archive = require("scripts.archive")
 
 local PROTOCOL_VERSION = 6
 
@@ -128,6 +131,7 @@ local function initialize()
   companion.normalize_all()
   pcall(follow.migrate)
   walk.apply_pathfinder_budget()
+  pcall(spectators.sweep)
 end
 
 script.on_init(initialize)
@@ -136,19 +140,27 @@ script.on_event(defines.events.on_console_chat, chat.on_console_chat)
 script.on_nth_tick(120, function()
   companion.update_map_tag()
 end)
+-- one handler for the 30-tick work: a second on_nth_tick(30) registration would
+-- replace the first (the explored-chunk update did, until 0.2.24)
 script.on_nth_tick(vision.UPDATE_TICKS, function()
-  vision.update(companion.entities())
+  pcall(function() vision.update(companion.entities()) end)
   status.update_labels()
+  pcall(events.flush_combat)
 end)
 script.on_event(defines.events.on_tick, tasks.on_tick)
-script.on_nth_tick(30, function() pcall(events.flush_combat) end)
 script.on_nth_tick(follow.CHECK_TICKS, follow.on_check)
 script.on_event(defines.events.on_gui_click, follow.on_gui_click)
 script.on_event({ defines.events.on_player_display_resolution_changed, defines.events.on_player_display_scale_changed },
   follow.on_display_changed)
 script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
   if e.setting == "factorio-mcp-pathfinder-budget" then walk.apply_pathfinder_budget() end
+  if e.setting == "factorio-mcp-humans-spectate" then spectators.sweep() end
 end)
+-- the end of the run, humans watching, the save archive (see each module)
+script.on_event(defines.events.on_rocket_launched, rocket.on_rocket_launched)
+script.on_event(defines.events.on_player_joined_game, spectators.on_player_joined_game)
+script.on_nth_tick(300, spectators.sweep)
+script.on_nth_tick(600, archive.check)
 follow.register_commands()
 script.on_event(defines.events.on_script_path_request_finished, walk.on_path_finished)
 -- damage/death handlers check the force inside (2.0 has no "force" event

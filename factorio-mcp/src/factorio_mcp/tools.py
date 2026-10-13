@@ -135,6 +135,7 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     "pick_up": (0, 2, 18),  # introduced in mod 0.2.18
     "list_technologies": (0, 2, 21),  # introduced in mod 0.2.21
     "cancel_research": (0, 2, 21),  # introduced in mod 0.2.21
+    "launch_rocket": (0, 2, 24),  # introduced in mod 0.2.24
 }
 
 
@@ -1025,6 +1026,12 @@ def register(app: MCPServer, game: Game) -> None:
         task = ({"type": "deconstruct", "area": {"center": {"x": x, "y": y}, "radius": area_radius}}
                 if area_radius else {"type": "deconstruct", "target": {"x": x, "y": y}})
         return await run_job(task, wait_s, replace)
+
+    @tool("Walk into reach of the rocket silo at x,y and launch its rocket (a silo builds one from 100 rocket parts). "
+          "Fails at once with the parts count when no rocket exists yet; waits for a rocket that is still rising. "
+          "What insert_items put into the silo is the rocket's cargo.")
+    async def launch_rocket(x: Coord, y: Coord, wait_s: WaitS = None, replace: Replace = False) -> str:
+        return await run_job({"type": "launch_rocket", "target": {"x": x, "y": y}}, wait_s, replace)
 
     @tool("Fight visible enemies around a point with your equipped gun (walks into range, shoots, next target); "
           "anchored to the radius; retreats below flee_below health.")

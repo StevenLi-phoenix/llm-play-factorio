@@ -60,4 +60,27 @@ data:extend({
     default_value = true,
     order = "g",
   },
+  {
+    type = "bool-setting",
+    name = "factorio-mcp-rpc-log",
+    setting_type = "runtime-global",
+    default_value = true,
+    order = "h",
+  },
+  {
+    type = "bool-setting",
+    name = "factorio-mcp-humans-spectate",
+    setting_type = "runtime-global",
+    default_value = true,
+    order = "i",
+  },
+  {
+    type = "int-setting",
+    name = "factorio-mcp-archive-minutes",
+    setting_type = "runtime-global",
+    default_value = 10,
+    minimum_value = 0,
+    maximum_value = 1440,
+    order = "j",
+  },
 })

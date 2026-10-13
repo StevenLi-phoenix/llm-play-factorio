@@ -30,7 +30,7 @@ _G.defines = {
 _G.remote = { add_interface = function() end }
 _G.commands = { add_command = function() end }
 
-local registered = { events = {}, nth = {}, init = 0, load = 0 }
+local registered = { events = {}, nth = {}, nth_fn = {}, init = 0, load = 0 }
 _G.script = {
   on_init = function() registered.init = registered.init + 1 end,
   on_configuration_changed = function() registered.init = registered.init + 1 end,
@@ -44,7 +44,7 @@ _G.script = {
     end
     registered.events[#registered.events + 1] = { names = names, filters = filters }
   end,
-  on_nth_tick = function(n) registered.nth[n] = true end,
+  on_nth_tick = function(n, fn) registered.nth[n] = true registered.nth_fn[n] = fn end,
   active_mods = { ["factorio-mcp"] = "test", base = "2.0" },
 }
 
@@ -65,6 +65,27 @@ if ok then
   check(died, "control.lua registers on_entity_died")
   check(both_unfiltered, "no handler is registered with an event filter table (the 0.2.16 crash class)")
   check(registered.nth[30] == true, "the 30-tick combat flush is registered")
+  local launched, joined = false, false
+  for _, r in ipairs(registered.events) do
+    for _, n in ipairs(r.names) do
+      if n == "evt:on_rocket_launched" then launched = true end
+      if n == "evt:on_player_joined_game" then joined = true end
+    end
+  end
+  check(launched, "control.lua registers on_rocket_launched (the run result)")
+  check(joined and registered.nth[300] == true, "control.lua registers the spectator join handler and its 5-second sweep")
+  check(registered.nth[600] == true, "the save-archive check is registered")
+
+  -- the 30-tick handler must do ALL the 30-tick work: a second registration for
+  -- the same interval replaces the first (the explored-chunk update was lost
+  -- that way until 0.2.24)
+  local vision = require("scripts.vision")
+  local combat = require("scripts.events")
+  local updated, flushed = 0, 0
+  vision.update = function() updated = updated + 1 end
+  combat.flush_combat = function() flushed = flushed + 1 end
+  registered.nth_fn[30]()
+  check(updated == 1 and flushed == 1, "the 30-tick handler updates explored chunks and flushes combat")
 
   local rpc = require("scripts.rpc")
   check(rpc.handlers["ping"] ~= nil, "ping is registered")

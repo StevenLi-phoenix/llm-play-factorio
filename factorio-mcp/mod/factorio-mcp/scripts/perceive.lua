@@ -7,6 +7,7 @@ local equipment = require("scripts.equipment")
 local tasks = require("scripts.tasks")
 local vision = require("scripts.vision")
 local items = require("scripts.items")
+local rocket = require("scripts.rocket")
 
 local M = {}
 
@@ -330,6 +331,12 @@ function M.get_state(params)
 
   local power = collect_power(surface, force, origin, radius, structures)
   if power then out.power = power end
+
+  -- rocket silos anywhere on known ground (rocket parts, ready or not), and
+  -- the run's result once a rocket has launched
+  local silos = rocket.silos(surface, force, vision)
+  if #silos > 0 then out.rocket_silos = silos end
+  if storage.run_result then out.rocket_launched = storage.run_result end
 
   -- Enemies only count when visible right now (fog of war).
   local enemy_list = vision.filter_visible(surface.find_entities_filtered({

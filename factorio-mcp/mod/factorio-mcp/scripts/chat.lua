@@ -53,6 +53,15 @@ function M.say(params)
   return {}
 end
 
+-- A line from the server itself (game events such as a rocket launch), in the
+-- same log, so agents read it with the chat.
+function M.log_server_line(text)
+  local chat = storage.chat
+  chat.messages[#chat.messages + 1] = { id = chat.next_id, tick = game.tick, player = "server", text = text }
+  chat.next_id = chat.next_id + 1
+  if #chat.messages > MAX_MESSAGES then table.remove(chat.messages, 1) end
+end
+
 -- Agents hear each other: their lines go into the same chat log, tagged bot.
 function M.log_bot_line(name, text)
   local chat = storage.chat
