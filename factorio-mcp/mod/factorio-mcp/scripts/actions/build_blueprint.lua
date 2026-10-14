@@ -45,6 +45,17 @@ function M.start(task)
       resolved.label or task.label or "blueprint", #resolved.entities, MAX_ENTITIES))
   end
 
+  -- Keep the print on the tile grid: the anchor takes the fractional part of
+  -- the print's own top-left reference (a 3x3 machine sits on .5, a 2x2 on .0).
+  local g = resolved.grid or { x = 0, y = 0 }
+  local function snap(v, f) return math.floor(v - f + 0.5) + f end
+  local snapped = { x = snap(anchor.x, g.x), y = snap(anchor.y, g.y) }
+  if snapped.x ~= anchor.x or snapped.y ~= anchor.y then
+    task._anchor_note = string.format("anchor snapped from (%g, %g) to (%g, %g) to stay on the tile grid",
+      anchor.x, anchor.y, snapped.x, snapped.y)
+  end
+  anchor = snapped
+
   local steps = {}
   for i, e in ipairs(resolved.entities) do
     steps[i] = {
@@ -73,6 +84,9 @@ end
 
 function M.tick(task)
   local res = build_plan.tick(task)
+  if res and task._anchor_note then
+    res.detail = (res.detail or "") .. " — " .. task._anchor_note
+  end
   if res and task._skipped then
     res.detail = (res.detail or "") .. " — skipped unknown entities: " .. task._skipped
   end

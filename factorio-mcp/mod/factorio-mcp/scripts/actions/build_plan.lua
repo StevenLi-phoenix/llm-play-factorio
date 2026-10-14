@@ -165,6 +165,11 @@ local function apply_recipe(c, e, recipe_name, task)
     end
     return "the " .. e.name .. " can't have a recipe set — only crafting machines can"
   end
+  local current = e.get_recipe()
+  if current and current.name == recipe_name then
+    if task then provenance.record(e, "set recipe to " .. recipe_name, task) end
+    return nil
+  end
   local ok, removed = pcall(e.set_recipe, recipe_name)
   if not ok then
     return string.format("couldn't set recipe %s on the %s — that machine probably can't craft it",
@@ -350,12 +355,22 @@ function M.tick(task)
       step.item, step.position.x, step.position.y, placement.explain(c, entity_name, step.position, step.direction)))
   end
 
+  -- A crafting machine keeps its direction only when it is created with a
+  -- fluid recipe already set (set_recipe afterwards leaves it facing north),
+  -- so an enabled recipe goes into create_entity; apply_recipe below then
+  -- only reports problems and records provenance.
+  local create_recipe
+  if step.recipe and prototypes.entity[entity_name].type == "assembling-machine" then
+    local r = c.force.recipes[step.recipe]
+    if r and r.enabled then create_recipe = step.recipe end
+  end
   local built = c.surface.create_entity({
     name = entity_name,
     position = step.position,
     direction = step.direction,
     force = c.force,
     quality = item_quality,
+    recipe = create_recipe,
     type = step.underground_type, -- underground belts: "input" (entrance) or "output" (exit)
     raise_built = true,
     fast_replace = occ ~= nil and step.fast_replace == true or nil,

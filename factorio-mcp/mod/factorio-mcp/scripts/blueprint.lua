@@ -92,6 +92,9 @@ local function normalize(holder)
     list = list,
     items_needed = needed,
     skipped = skipped,
+    -- Fractional part of the top-left corner reference: an anchor must share
+    -- it, or every building lands half a tile off the grid.
+    grid = { x = min_x - math.floor(min_x), y = min_y - math.floor(min_y) },
     size = { w = math.ceil(max_x) + 1, h = math.ceil(max_y) + 1 },
   }
 end
@@ -139,6 +142,7 @@ local function decode(holder, label, offset, limit)
   return {
     label = label,
     size = norm.size,
+    grid = norm.grid,
     total_entities = total,
     offset = offset,
     entities = window,
@@ -242,7 +246,7 @@ function M.export(params)
   local ok, result = pcall(function()
     local stack = inv[1]
     stack.set_stack({ name = "blueprint" })
-    stack.create_blueprint({
+    local sources = stack.create_blueprint({
       surface = c.surface,
       force = c.force,
       area = { { x1, y1 }, { x2, y2 } },
@@ -258,6 +262,25 @@ function M.export(params)
     end
     if type(params.label) == "string" and params.label ~= "" then stack.label = params.label end
     local norm = normalize(stack)
+    -- Anchor = map position of the print's relative origin. create_blueprint
+    -- maps entity numbers to the map entities they came from; one of them
+    -- pins the offset exactly (the selection corner is NOT the origin).
+    local anchor = { x = x1, y = y1 }
+    local bp_ents = stack.get_blueprint_entities() or {}
+    local min_x, min_y = math.huge, math.huge
+    for _, e in ipairs(bp_ents) do
+      if prototypes.entity[e.name] then
+        min_x = math.min(min_x, e.position.x)
+        min_y = math.min(min_y, e.position.y)
+      end
+    end
+    for _, e in ipairs(bp_ents) do
+      local src = sources and sources[e.entity_number]
+      if src and src.valid then
+        anchor = { x = round1(src.position.x - (e.position.x - min_x)), y = round1(src.position.y - (e.position.y - min_y)) }
+        break
+      end
+    end
     local counts = {}
     for _, e in ipairs(norm.list) do counts[e.name] = (counts[e.name] or 0) + 1 end
     -- Every string handed out is made in the run: record it before it leaves.
@@ -267,9 +290,9 @@ function M.export(params)
       entity_counts = counts,
       total_entities = #norm.list,
       size = norm.size,
+      grid = norm.grid,
       area = { left_top = { x = x1, y = y1 }, right_bottom = { x = x2, y = y2 } },
-      -- where the print's top-left entity sits on the map (anchor for rebuilding in place)
-      anchor = { x = x1, y = y1 },
+      anchor = anchor, -- build_blueprint at this anchor rebuilds the print in place
     }
   end)
   pcall(function() inv.destroy() end)
@@ -434,6 +457,7 @@ function M.resolve_for_build(params)
         items_needed = norm.items_needed,
         skipped = norm.skipped,
         size = norm.size,
+        grid = norm.grid,
       }
     end, true)
   end
@@ -447,6 +471,7 @@ function M.resolve_for_build(params)
     items_needed = norm.items_needed,
     skipped = norm.skipped,
     size = norm.size,
+    grid = norm.grid,
   }
 end
 

@@ -598,11 +598,14 @@ def register(app: MCPServer, game: Game) -> None:
         return fmt.blueprint(await game.call("import_blueprint", {"string": string, "offset": offset, "limit": limit}))
 
     @tool("Capture your force's buildings in an explored rectangle (max 200x200 tiles) as a blueprint export string, "
-          "with entity counts and the map anchor of its top-left entity.")
+          "with entity counts and its anchor: build_blueprint at that anchor rebuilds it in place, so add an offset to the "
+          "anchor to copy it elsewhere.")
     async def export_blueprint(x1: float, y1: float, x2: float, y2: float, label: str | None = None) -> str:
         r = await game.call("export_blueprint", {"area": [{"x": x1, "y": y1}, {"x": x2, "y": y2}], "label": label})
         counts = ", ".join(f"{n} x{c}" for n, c in sorted((r.get("entity_counts") or {}).items()))
-        return (f"Exported {r['total_entities']} entities ({counts}), footprint {r['size']['w']}x{r['size']['h']}.\n"
+        a = r.get("anchor") or {}
+        return (f"Exported {r['total_entities']} entities ({counts}), footprint {r['size']['w']}x{r['size']['h']}, "
+                f"anchor ({a.get('x')}, {a.get('y')}).\n"
                 f"Blueprint string:\n{r['string']}")
 
     # ------------------------------------------------------- chat/events
@@ -949,7 +952,9 @@ def register(app: MCPServer, game: Game) -> None:
 
     dry_run_plan = dry_run
 
-    @tool("Build a whole blueprint as ONE job, anchored so its top-left entity lands at (anchor_x, anchor_y): from an "
+    @tool("Build a whole blueprint as ONE job at (anchor_x, anchor_y): each entity goes to the anchor plus its relative "
+          "position (as import_blueprint lists them); export_blueprint's anchor rebuilds it in place. The anchor is snapped "
+          "to the print's tile grid; directions and recipes are kept. From an "
           "export string, or a carried blueprint by label. A string must have been made during the run (export_blueprint, or "
           "compiled from your own layout); any other is refused. Up to 1000 entities; per-step failures are reported.")
     async def build_blueprint(
