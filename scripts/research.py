@@ -1,7 +1,7 @@
-"""Keep the play server's research queue on the path to rocket-silo (prerequisites first), and print what is
-left. Run it by hand at each check (no background loop).
+"""Print research progress and what is left on the path to rocket-silo (read-only by default).
+With --set, also replace the research queue with the first 7 techs of that path (prerequisites first).
 
-  python -I scripts/research.py [TARGET_TECH]
+  python -I scripts/research.py [TARGET_TECH] [--set]
 """
 import os
 import sys
@@ -18,12 +18,14 @@ local function visit(t) if seen[t.name] or t.researched then return end seen[t.n
 visit(f.technologies["%s"])
 local function ready(t) for _,p in pairs(t.prerequisites) do if not p.researched then return false end end return true end
 local q={} local inq={} for _,n in pairs(order) do if #q<7 then q[#q+1]=n inq[n]=true end end
-pcall(function() f.research_queue=q end)
+if %s then pcall(function() f.research_queue=q end) end
 local cur={} for _,t in pairs(f.research_queue) do cur[#cur+1]=t.name end
 local cnt={} for _,n in pairs(order) do local t=f.technologies[n] for _,u in pairs(t.research_unit_ingredients) do cnt[u.name]=(cnt[u.name] or 0)+u.amount*t.research_unit_count end end
 local c={} for k,v in pairs(cnt) do c[#c+1]=k:gsub("%%-science%%-pack","").."="..v end
 rcon.print((f.current_research and (f.current_research.name.." "..math.floor(f.research_progress*100).."%%; ") or "idle; ")..#order.." techs left; queue: "..table.concat(cur," > ").." | packs left: "..table.concat(c," "))"""
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "rocket-silo"
-    print(rcon.command(" ".join((LUA % target).split("\n"))))
+    args = [a for a in sys.argv[1:] if a != "--set"]
+    target = args[0] if args else "rocket-silo"
+    setq = "true" if "--set" in sys.argv[1:] else "false"
+    print(rcon.command(" ".join((LUA % (target, setq)).split("\n"))))
