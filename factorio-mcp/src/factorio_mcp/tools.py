@@ -1108,7 +1108,7 @@ def register(app: MCPServer, game: Game) -> None:
         return f"Platform '{r['platform']}': {r['marked']} building(s) marked for removal, {r['ghosts_removed']} ghost(s) deleted."
 
     @tool("Set the recipe, filters (item/asteroid-chunk names, in slot order) and/or direction of one building or "
-          "ghost on a platform: crusher and assembler recipes, asteroid collector and inserter filters.")
+          "ghost on a platform: crusher and assembler recipes, inserter filters, asteroid collector filters (metallic-asteroid-chunk, carbonic-asteroid-chunk, oxide-asteroid-chunk; [] collects all).")
     async def platform_configure(platform: str, x: float, y: float, recipe: str | None = None,
                                  filters: list[str] | None = None,
                                  direction: Annotated[int | None, Field(ge=0, le=15)] = None) -> str:

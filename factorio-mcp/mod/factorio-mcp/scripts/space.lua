@@ -323,7 +323,19 @@ function M.platform_configure(params)
     done[#done + 1] = "recipe " .. tostring(params.recipe)
   end
   if type(params.filters) == "table" then
+    local etype = e.type == "entity-ghost" and e.ghost_type or e.type
     local ok, err = pcall(function()
+      if etype == "asteroid-collector" then
+        -- collector filters are asteroid-chunk names, set as plain strings
+        for i = 1, math.max(5, #params.filters) do
+          local f = params.filters[i]
+          if f and not prototypes.asteroid_chunk[f] then
+            error("'" .. f .. "' is not an asteroid chunk (metallic-asteroid-chunk, carbonic-asteroid-chunk, oxide-asteroid-chunk)")
+          end
+          pcall(function() e.set_filter(i, f) end)
+        end
+        return
+      end
       local slots = e.filter_slot_count or 0
       if slots == 0 and e.type ~= "entity-ghost" then error("this building has no filter slots") end
       pcall(function() e.use_filters = true end)
