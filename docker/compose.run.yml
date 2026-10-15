@@ -8,7 +8,7 @@ services:
     image: factoriotools/factorio:2.0.77
     container_name: llm-factorio-run
     environment:
-      DLC_SPACE_AGE: "false"
+      DLC_SPACE_AGE: "${DLC_SPACE_AGE:-false}"
       GENERATE_NEW_SAVE: "true"
       SAVE_NAME: llm-run
       LOAD_LATEST_SAVE: "false"

@@ -7,9 +7,9 @@ services:
     image: factoriotools/factorio:2.0.77   # pinned: `stable` moves, `latest` is 2.1 experimental
     container_name: llm-factorio
     environment:
-      DLC_SPACE_AGE: "false"               # image default is true; disables space-age/quality/elevated-rails
+      DLC_SPACE_AGE: "${DLC_SPACE_AGE:-false}"   # image default is true; false disables space-age/quality/elevated-rails
       GENERATE_NEW_SAVE: "true"            # only generates when saves/$SAVE_NAME.zip is absent
-      SAVE_NAME: llm-run                   # not "run": --start-server resolves it relative to cwd and hits /run
+      SAVE_NAME: ${SAVE_NAME:-llm-run}     # not "run": --start-server resolves it relative to cwd and hits /run
       LOAD_LATEST_SAVE: "false"
     ports:
       - "34198:34197/udp"                  # dev only; the play server (compose.run.yml) is on 34199
