@@ -382,6 +382,42 @@ function M.platform_requests(params)
   return { platform = p.name, requests = hub_requests(hub), import_from = from }
 end
 
+-- rpc "landing_pad_requests": what a cargo landing pad on your surface asks
+-- for. Platforms parked above the planet that hold requested items drop them
+-- down by cargo pod. items = {name = count}; {} clears.
+function M.landing_pad_requests(params)
+  need_space_age()
+  local c = companion.require_companion()
+  if type(params.x) ~= "number" or type(params.y) ~= "number" then error("give x, y of the cargo landing pad") end
+  if type(params.items) ~= "table" then error('give items = {"name": count, ...} ({} clears)') end
+  local pad = c.surface.find_entities_filtered({ type = "cargo-landing-pad", position = { params.x, params.y },
+    radius = 5, force = c.force })[1]
+  if not pad then error(string.format("no cargo landing pad near (%.1f, %.1f)", params.x, params.y)) end
+  local secs = pad.get_logistic_sections()
+  local sec
+  for i = 1, secs.sections_count do
+    local s = secs.get_section(i)
+    if s.is_manual then sec = s break end
+  end
+  sec = sec or secs.add_section()
+  for j = sec.filters_count, 1, -1 do sec.clear_slot(j) end
+  local names = {}
+  for name in pairs(params.items) do names[#names + 1] = name end
+  table.sort(names)
+  local slot = 0
+  for _, name in ipairs(names) do
+    if not prototypes.item[name] then error("unknown item '" .. name .. "'") end
+    local n = math.floor(tonumber(params.items[name]) or 0)
+    if n > 0 then
+      slot = slot + 1
+      sec.set_slot(slot, { value = { type = "item", name = name, quality = "normal" }, min = n })
+    end
+  end
+  local inv = pad.get_inventory(defines.inventory.cargo_landing_pad_main)
+  return { position = { x = pad.position.x, y = pad.position.y }, requests = hub_requests(pad),
+    holds = inv and items.inventory_map(inv) or {} }
+end
+
 local WAITS = {
   requests = { type = "all_requests_satisfied", compare_type = "or" },
 }

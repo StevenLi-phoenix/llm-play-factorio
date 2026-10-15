@@ -153,7 +153,7 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     # Space Age platforms and travel, introduced in mod 0.3.0
     "platforms": (0, 3, 0), "platform_order": (0, 3, 0), "platform_build": (0, 3, 0),
     "platform_deconstruct": (0, 3, 0), "platform_configure": (0, 3, 0), "platform_requests": (0, 3, 0),
-    "platform_schedule": (0, 3, 0), "ride_rocket": (0, 3, 0), "drop_to_planet": (0, 3, 0),
+    "platform_schedule": (0, 3, 0), "landing_pad_requests": (0, 3, 1), "ride_rocket": (0, 3, 0), "drop_to_planet": (0, 3, 0),
 }
 
 
@@ -1124,6 +1124,14 @@ def register(app: MCPServer, game: Game) -> None:
         req = r.get("requests") or {}
         return (f"Platform '{r['platform']}' requests (from {r.get('import_from')}): "
                 + (fmt.items_text(req) or "nothing") + ".")
+
+    @tool("Set what a cargo landing pad at x,y on your planet requests (replaces its list; {} clears). Platforms "
+          "parked above the planet that hold requested items in their hub drop them down to the pad by cargo pod.")
+    async def landing_pad_requests(x: float, y: float, items: dict[str, int]) -> str:
+        r = await game.call("landing_pad_requests", {"x": x, "y": y, "items": items})
+        return (f"Landing pad at ({r['position']['x']}, {r['position']['y']}) requests: "
+                + (fmt.items_text(r.get("requests")) or "nothing") + ". Holds: "
+                + (fmt.items_text(r.get("holds")) or "nothing") + ".")
 
     @tool("Set a platform's route (planets in order, each with a wait) and/or pause/unpause it. A platform flies "
           "only with thrusters fed with fuel and oxidizer, and asteroids damage it in flight.")

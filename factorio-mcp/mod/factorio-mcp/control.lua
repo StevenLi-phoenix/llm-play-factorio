@@ -121,6 +121,7 @@ rpc.register("platform_deconstruct", space.platform_deconstruct)
 rpc.register("platform_configure", space.platform_configure)
 rpc.register("platform_requests", space.platform_requests)
 rpc.register("platform_schedule", space.platform_schedule)
+rpc.register("landing_pad_requests", space.landing_pad_requests)
 rpc.register("drop_to_planet", space.drop_to_planet)
 
 -- jobs (multi-tick actions run by tasks.lua)
