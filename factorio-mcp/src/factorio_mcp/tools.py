@@ -108,6 +108,20 @@ class TrainStop(BaseModel):
     wait: Literal["full", "empty"] | float | None = Field(None, description='"full", "empty" or seconds (default 5)')
 
 
+class PlatformStep(BaseModel):
+    name: str = Field(description="item or entity, e.g. space-platform-foundation (a floor tile), asteroid-collector, crusher")
+    x: float
+    y: float
+    direction: int | None = Field(None, ge=0, le=15, description="0=N 4=E 8=S 12=W")
+    recipe: str | None = Field(None, description="recipe for an assembler/crusher/chemical plant ghost")
+
+
+class PlatformStop(BaseModel):
+    planet: str = Field(description="space location: nauvis, vulcanus, fulgora, gleba, aquilo, solar-system-edge, ...")
+    wait: Literal["requests"] | float | None = Field(
+        None, description='seconds to wait there, or "requests" (until all hub requests are satisfied); none = leave at once')
+
+
 def _tool_errors(fn):
     """Game-side failures become MCP tool errors (isError) with the message."""
 
@@ -136,6 +150,10 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     "list_technologies": (0, 2, 21),  # introduced in mod 0.2.21
     "cancel_research": (0, 2, 21),  # introduced in mod 0.2.21
     "launch_rocket": (0, 2, 24),  # introduced in mod 0.2.24
+    # Space Age platforms and travel, introduced in mod 0.3.0
+    "platforms": (0, 3, 0), "platform_order": (0, 3, 0), "platform_build": (0, 3, 0),
+    "platform_deconstruct": (0, 3, 0), "platform_configure": (0, 3, 0), "platform_requests": (0, 3, 0),
+    "platform_schedule": (0, 3, 0), "ride_rocket": (0, 3, 0), "drop_to_planet": (0, 3, 0),
 }
 
 
@@ -370,10 +388,14 @@ def register(app: MCPServer, game: Game) -> None:
         radius: Annotated[int, Field(ge=5, le=120, description="half-width in tiles, default 15")] = 15,
         scale: Annotated[int | None, Field(ge=1, le=8, description="tiles per character; default 1 up to radius 40, "
                                            "then automatic so the grid stays about 81 wide")] = None,
+        platform: Annotated[str | None, Field(description="scan this space platform instead of your surface "
+                                              "(centre defaults to its hub at 0,0)")] = None,
     ) -> str:
         params: dict[str, Any] = {"center": xy(x, y, "scan center"), "radius": radius}
         if scale:
             params["scale"] = scale
+        if platform:
+            params["platform"] = platform
         return fmt.scan(await game.call("scan_area", params))
 
     @tool("The map screen: resource patches, rock clusters, forests, water and enemy bases on all ground you know "
@@ -1032,11 +1054,103 @@ def register(app: MCPServer, game: Game) -> None:
                 if area_radius else {"type": "deconstruct", "target": {"x": x, "y": y}})
         return await run_job(task, wait_s, replace)
 
-    @tool("Walk into reach of the rocket silo at x,y and launch its rocket (a silo builds one from 100 rocket parts). "
+    @tool("Walk into reach of the rocket silo at x,y and launch its rocket (built from the silo's rocket parts). "
           "Fails at once with the parts count when no rocket exists yet; waits for a rocket that is still rising. "
-          "What insert_items put into the silo is the rocket's cargo.")
-    async def launch_rocket(x: Coord, y: Coord, wait_s: WaitS = None, replace: Replace = False) -> str:
-        return await run_job({"type": "launch_rocket", "target": {"x": x, "y": y}}, wait_s, replace)
+          "What insert_items put into the silo is the rocket's cargo; give platform to deliver it into that "
+          "platform's hub (the platform must be parked above this planet).")
+    async def launch_rocket(x: Coord, y: Coord, platform: str | None = None,
+                            wait_s: WaitS = None, replace: Replace = False) -> str:
+        task: dict[str, Any] = {"type": "launch_rocket", "target": {"x": x, "y": y}}
+        if platform:
+            task["platform"] = platform
+        return await run_job(task, wait_s, replace)
+
+    # --------------------------------------------------------------- Space Age
+
+    @tool("Space platforms of your force: state, where each is (parked at a planet, or between two locations with "
+          "progress 0-1), speed, schedule, hub contents and requests, open ghosts. Give platform for one in detail "
+          "(its buildings and the items its unbuilt ghosts still wait for).")
+    async def platforms(platform: str | None = None) -> str:
+        r = await game.call("platforms", {"platform": platform})
+        return fmt.platforms(r)
+
+    @tool("Order a new space platform above the planet you are on. It waits for a space-platform-starter-pack: put "
+          "one into a rocket silo (insert_items) and the silo launches it by itself once its rocket is ready (50 "
+          "rocket parts). The platform then starts with a hub and a small floor, paused, no schedule.")
+    async def platform_order(name: Annotated[str, Field(min_length=1, max_length=40)]) -> str:
+        r = await game.call("platform_order", {"name": name})
+        return f"Platform '{r['platform']['name']}' ordered above {r['planet']}; it waits for a starter pack from a silo."
+
+    @tool("Place ghosts on a space platform (like building in remote view). The hub builds them from ITS OWN "
+          "inventory, so the items must be in the hub (platform_requests brings them up by rocket). Floor: name "
+          "space-platform-foundation per tile, connected to the existing floor. Buildings need floor under every tile "
+          "and must not overlap. Each step is checked; rejects are listed with the reason.")
+    async def platform_build(platform: str, steps: Annotated[list[PlatformStep], Field(min_length=1, max_length=400)]) -> str:
+        r = await game.call("platform_build", {"platform": platform,
+                                               "steps": [st.model_dump(exclude_none=True) for st in steps]})
+        out = f"Platform '{r['platform']}': {r['placed']} ghost(s) placed"
+        if r.get("placed_by_name"):
+            out += " (" + ", ".join(f"{v} {k}" for k, v in sorted(r["placed_by_name"].items())) + ")"
+        out += "."
+        rej = as_list(r.get("rejected"))
+        if rej:
+            out += f" {r['rejected_total']} rejected:\n" + "\n".join(
+                f"  step {x['i']} {x['name']} at ({x.get('x')}, {x.get('y')}): {x['why']}" for x in rej)
+        out += "\nHub holds: " + (fmt.items_text(r.get("hub_items")) or "nothing")
+        return out
+
+    @tool("Mark buildings in an area of a platform for removal (the hub takes them back); ghosts there are deleted. "
+          "names limits it to those entity names.")
+    async def platform_deconstruct(platform: str, x1: float, y1: float, x2: float, y2: float,
+                                   names: list[str] | None = None) -> str:
+        r = await game.call("platform_deconstruct", {"platform": platform, "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                                                     "names": names})
+        return f"Platform '{r['platform']}': {r['marked']} building(s) marked for removal, {r['ghosts_removed']} ghost(s) deleted."
+
+    @tool("Set the recipe, filters (item/asteroid-chunk names, in slot order) and/or direction of one building or "
+          "ghost on a platform: crusher and assembler recipes, asteroid collector and inserter filters.")
+    async def platform_configure(platform: str, x: float, y: float, recipe: str | None = None,
+                                 filters: list[str] | None = None,
+                                 direction: Annotated[int | None, Field(ge=0, le=15)] = None) -> str:
+        r = await game.call("platform_configure", {"platform": platform, "x": x, "y": y, "recipe": recipe,
+                                                   "filters": filters, "direction": direction})
+        return f"{r['entity']} at ({r['position']['x']}, {r['position']['y']}) on '{r['platform']}': set " + "; ".join(r["set"]) + "."
+
+    @tool("Set what a platform's hub requests (replaces its request list; {} clears), imported from import_from "
+          "(default: the planet it is parked at, else nauvis). While the platform is parked at that planet, rocket "
+          "silos there whose rockets hold requested items launch them up automatically.")
+    async def platform_requests(platform: str, items: dict[str, int], import_from: str | None = None) -> str:
+        r = await game.call("platform_requests", {"platform": platform, "items": items, "import_from": import_from})
+        req = r.get("requests") or {}
+        return (f"Platform '{r['platform']}' requests (from {r.get('import_from')}): "
+                + (fmt.items_text(req) or "nothing") + ".")
+
+    @tool("Set a platform's route (planets in order, each with a wait) and/or pause/unpause it. A platform flies "
+          "only with thrusters fed with fuel and oxidizer, and asteroids damage it in flight.")
+    async def platform_schedule(platform: str,
+                                stops: Annotated[list[PlatformStop] | None, Field(max_length=10)] = None,
+                                paused: bool | None = None) -> str:
+        params: dict[str, Any] = {"platform": platform}
+        if stops is not None:
+            params["stops"] = [st.model_dump() for st in stops]
+        if paused is not None:
+            params["paused"] = paused
+        r = await game.call("platform_schedule", params)
+        return fmt.platforms({"platforms": [r["platform"]]})
+
+    @tool("Walk to the rocket silo at x,y and ride its rocket up to a platform parked above this planet (you arrive "
+          "inside its hub; the silo's cargo comes along). Needs a ready rocket (50 parts).")
+    async def ride_rocket(x: Coord, y: Coord, platform: str, wait_s: WaitS = None, replace: Replace = False) -> str:
+        return await run_job({"type": "ride_rocket", "target": {"x": x, "y": y}, "platform": platform}, wait_s, replace)
+
+    @tool("From the platform you are on (parked at a planet), ride a cargo pod down to that planet. Lands near "
+          "x,y if given, else at a cargo landing pad or the planet's centre. Takes about 20 s.")
+    async def drop_to_planet(x: float | None = None, y: float | None = None) -> str:
+        params: dict[str, Any] = {}
+        if x is not None and y is not None:
+            params["position"] = {"x": x, "y": y}
+        r = await game.call("drop_to_planet", params)
+        return f"Cargo pod launched from '{r['platform']}' down to {r['planet']}; check status in ~20 s."
 
     @tool("Fight visible enemies around a point with your equipped gun (walks into range, shoots, next target); "
           "anchored to the radius; retreats below flee_below health.")

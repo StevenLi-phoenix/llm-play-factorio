@@ -5,6 +5,7 @@
 local companion = require("scripts.companion")
 local vision = require("scripts.vision")
 local placement = require("scripts.placement")
+local space = require("scripts.space")
 
 local M = {}
 
@@ -95,12 +96,13 @@ local PRIORITY = {
 
 function M.scan_area(params)
   local c = companion.require_companion()
-  local surface = c.surface
+  local surface, platform = space.surface_for(params, c)
 
   local radius = math.floor(tonumber(params.radius) or SCAN_DEFAULT_RADIUS)
   radius = math.max(SCAN_MIN_RADIUS, math.min(radius, SCAN_MAX_RADIUS))
 
   local center = c.position
+  if platform or surface ~= c.surface then center = { x = 0, y = 0 } end
   if params.center ~= nil then
     center = require_position(params.center, "scan_area center must be {x, y}")
   end
@@ -183,6 +185,9 @@ function M.scan_area(params)
     for col = 1, size do
       if not known_tile(ox + col - 1, oy + row - 1) then
         crow[col], prow[col] = "?", UNKNOWN
+      elseif platform and surface.get_tile(ox + col - 1, oy + row - 1).name == "empty-space" then
+        crow[col], prow[col] = " ", PRIORITY.water
+        legend[" "] = "empty space (no floor)"
       elseif is_water_at(surface, ox + col - 1, oy + row - 1) then
         crow[col], prow[col] = "~", PRIORITY.water
       else

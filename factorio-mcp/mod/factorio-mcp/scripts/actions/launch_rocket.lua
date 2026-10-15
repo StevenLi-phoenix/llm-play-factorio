@@ -7,6 +7,7 @@
 local companion = require("scripts.companion")
 local approach = require("scripts.actions.approach")
 local rocket = require("scripts.rocket")
+local space = require("scripts.space")
 
 local M = {}
 
@@ -88,7 +89,16 @@ function M.tick(task)
   end
 
   rocket.note_launch(silo, info.cargo)
-  local ok, res = pcall(function() return silo.launch_rocket() end)
+  local dest
+  if task.platform then
+    local p = space.find_platform(c.force, task.platform)
+    if not (p.hub and p.hub.valid and p.space_location and c.surface.planet
+        and p.space_location.name == c.surface.planet.name) then
+      return { status = "failed", detail = "platform '" .. p.name .. "' is not parked above this planet with a hub" }
+    end
+    dest = { type = defines.cargo_destination.station, station = p.hub }
+  end
+  local ok, res = pcall(function() return silo.launch_rocket(dest) end)
   if not ok then
     return { status = "failed", detail = "the silo refused to launch: " .. (tostring(res):gsub("^.-:%d+:%s*", "")) }
   end

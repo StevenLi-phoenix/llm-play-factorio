@@ -486,3 +486,42 @@ def tech_tree(r: dict[str, Any]) -> str:
             tags.append(f"{num(t['unit_time_s'])}s/unit at one lab (speed 1)")
         lines.append("  " + t["name"] + f" ({t.get('label')})" + (": " + "; ".join(tags) if tags else ""))
     return "\n".join(lines)
+
+
+def platforms(r: dict[str, Any]) -> str:
+    """platforms / platform_schedule: one block per platform."""
+    plats = r.get("platforms") or []
+    if isinstance(plats, dict):
+        plats = list(plats.values())
+    lines: list[str] = []
+    if r.get("you_are_on"):
+        lines.append(f"You are on {r['you_are_on']}.")
+    if not plats:
+        lines.append("Your force has no space platforms yet (platform_order; needs rocket-silo research).")
+    for p in plats:
+        head = f"Platform '{p['name']}' (#{p['index']}): {str(p.get('state')).replace('_', ' ')}"
+        if p.get("at"):
+            head += f", parked at {p['at']}"
+        elif p.get("between"):
+            head += f", flying {p['between']} -> {p.get('to_location')} ({num(round(100 * (p.get('distance') or 0)))}%)"
+        if p.get("paused"):
+            head += ", PAUSED"
+        if p.get("speed"):
+            head += f", speed {num(round(p['speed'] * 60 * 100) / 100)} km/s"
+        lines.append(head)
+        sched = p.get("schedule")
+        if sched:
+            stops = sched.get("stops") or []
+            lines.append("  route: " + " -> ".join(stops) + f" (current stop {sched.get('current')})")
+        else:
+            lines.append("  route: none")
+        if p.get("has_hub"):
+            lines.append(f"  floor {p.get('foundation_tiles')} tiles; ghosts waiting: {p.get('entity_ghosts', 0)} building(s), "
+                         f"{p.get('tile_ghosts', 0)} floor tile(s); damaged tiles {p.get('damaged_tiles', 0)}")
+            lines.append("  hub holds: " + (items_text(p.get("hub_items")) or "nothing"))
+            lines.append("  hub requests: " + (items_text(p.get("requests")) or "nothing"))
+            if p.get("buildings"):
+                lines.append("  buildings: " + ", ".join(f"{v} {k}" for k, v in sorted(p["buildings"].items())))
+            if p.get("ghosts_waiting"):
+                lines.append("  ghosts still need: " + ", ".join(f"{v} {k}" for k, v in sorted(p["ghosts_waiting"].items())))
+    return "\n".join(lines)

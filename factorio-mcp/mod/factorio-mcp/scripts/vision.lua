@@ -113,7 +113,15 @@ end
 
 M.UPDATE_TICKS = UPDATE_TICKS
 
+-- A space platform of the force is seen whole, like in the platform window.
+local function own_platform(surface, force)
+  local ok, p = pcall(function() return surface.platform end)
+  return ok and p ~= nil and p.valid and p.force == force
+end
+M.own_platform = own_platform
+
 function M.is_known(surface, force, pos)
+  if own_platform(surface, force) then return true end
   local cx, cy = chunk_of(pos)
   if explored_set(force, surface)[key(cx, cy)] then return true end
   local ok, charted = pcall(function() return force.is_chunk_charted(surface, { cx, cy }) end)
@@ -136,6 +144,7 @@ local function viewers(surface, force)
 end
 
 function M.is_visible(surface, force, pos, cache)
+  if own_platform(surface, force) then return true end
   local r = M.view_radius()
   local r2 = r * r
   local vs = cache and cache.viewers or viewers(surface, force)
@@ -151,6 +160,13 @@ end
 
 -- Filters keep the input order. Chunk lookups are memoized per call.
 function M.filter_known(entities, surface, force)
+  if own_platform(surface, force) then
+    local all = {}
+    for _, e in ipairs(entities) do
+      if e.valid then all[#all + 1] = e end
+    end
+    return all
+  end
   local memo, out = {}, {}
   local set = explored_set(force, surface)
   for _, e in ipairs(entities) do

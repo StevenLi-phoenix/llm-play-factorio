@@ -151,6 +151,18 @@ local function attach_label(rec, name, ent)
   if ok and obj then rec.label = obj end
 end
 
+-- Point a character's record at a new body (space travel re-creates the body
+-- parked in a platform hub so a cargo pod can carry it down).
+function M.replace_body(name, ent)
+  local rec = records()[name]
+  if not rec then error("unknown character '" .. tostring(name) .. "'") end
+  rec.entity = ent
+  rec.unit_number = ent.unit_number
+  ent.color = color_for(name)
+  normalize_body(ent)
+  attach_label(rec, name, ent)
+end
+
 -- Map markers for every character; chart tags can't move, so re-pin after
 -- drifting. Runs on_nth_tick (wired in control.lua) — must never raise.
 function M.update_map_tag()

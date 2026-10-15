@@ -48,6 +48,7 @@ local runners = {
   measure_belt = require("scripts.belts").measure,
   pick_up = require("scripts.actions.pickup"),
   launch_rocket = require("scripts.actions.launch_rocket"),
+  ride_rocket = require("scripts.actions.ride_rocket"),
 }
 
 -- One lane (queue + active) per companion; tasks in different lanes run in
