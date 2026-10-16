@@ -34,6 +34,7 @@ local runners = {
   rotate = build.rotate,
   set_recipe = build.set_recipe,
   set_filters = build.set_filters,
+  place_tiles = build.place_tiles,
   craft = craft,
   insert = transfer.insert,
   extract = transfer.extract,

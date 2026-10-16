@@ -155,6 +155,7 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     "platform_deconstruct": (0, 3, 0), "platform_configure": (0, 3, 0), "platform_requests": (0, 3, 0),
     "platform_schedule": (0, 3, 0), "landing_pad_requests": (0, 3, 1), "ride_rocket": (0, 3, 0), "drop_to_planet": (0, 3, 0),
     "set_filters": (0, 3, 5),  # introduced in mod 0.3.5
+    "place_tiles": (0, 3, 8),
 }
 
 
@@ -862,6 +863,21 @@ def register(app: MCPServer, game: Game) -> None:
             if at:
                 task["at"] = at
         return await run_job(task, wait_s, replace, optional)
+
+    @tool("Place floor tiles from your inventory (walks within reach of each): landfill on water, concrete or "
+          "stone path, artificial-yumako-soil / artificial-jellynut-soil (Gleba farming), foundation, ... Give "
+          "positions (tile coordinates) or an area x1,y1,x2,y2 (up to 400 tiles). Tiles the item can't go on are "
+          "skipped with the reason. Platform floor is platform_build instead.")
+    async def place_tiles(item: str, positions: Annotated[list[Point] | None, Field(max_length=400)] = None,
+                          x1: float | None = None, y1: float | None = None,
+                          x2: float | None = None, y2: float | None = None,
+                          wait_s: WaitS = None, replace: Replace = False) -> str:
+        task: dict[str, Any] = {"type": "place_tiles", "item": item}
+        if positions:
+            task["positions"] = [p.model_dump() for p in positions]
+        if None not in (x1, y1, x2, y2):
+            task["area"] = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+        return await run_job(task, wait_s, replace)
 
     @tool("Set the recipe of the crafting machine at x,y (walks within reach).")
     async def set_recipe(x: Coord, y: Coord, recipe: str, wait_s: WaitS = None, replace: Replace = False) -> str:

@@ -399,4 +399,151 @@ function M.set_filters.tick(task)
     table.concat(done, "; ")) }
 end
 
+-- ------------------------------------------------------------- place_tiles
+
+M.place_tiles = {}
+
+local MAX_TILES = 400
+
+function M.place_tiles.start(task)
+  local c = companion.require_companion()
+  if type(task.item) ~= "string" then error("place_tiles requires item = <tile item name>") end
+  local proto = prototypes.item[task.item]
+  if not proto then error("no item called '" .. task.item .. "'") end
+  local pat = proto.place_as_tile_result
+  if not pat then error(task.item .. " is not a tile item (landfill, concrete, artificial soil, ...)") end
+  local tiles, seen = {}, {}
+  local function add(x, y)
+    x, y = math.floor(x), math.floor(y)
+    local k = x .. "," .. y
+    if not seen[k] then seen[k] = true tiles[#tiles + 1] = { x = x, y = y } end
+  end
+  if type(task.positions) == "table" then
+    for _, p in ipairs(task.positions) do
+      if type(p) ~= "table" or type(p.x) ~= "number" or type(p.y) ~= "number" then
+        error("positions must be a list of {x, y}")
+      end
+      add(p.x, p.y)
+    end
+  end
+  if type(task.area) == "table" then
+    local a = task.area
+    for _, k in ipairs({ "x1", "y1", "x2", "y2" }) do
+      if type(a[k]) ~= "number" then error("area needs x1, y1, x2, y2") end
+    end
+    local x1, x2 = math.floor(math.min(a.x1, a.x2)), math.floor(math.max(a.x1, a.x2))
+    local y1, y2 = math.floor(math.min(a.y1, a.y2)), math.floor(math.max(a.y1, a.y2))
+    if (x2 - x1 + 1) * (y2 - y1 + 1) > MAX_TILES then error("area is more than " .. MAX_TILES .. " tiles") end
+    for y = y1, y2 do for x = x1, x2 do add(x, y) end end
+  end
+  if #tiles == 0 then error("give positions or an area") end
+  if #tiles > MAX_TILES then error("at most " .. MAX_TILES .. " tiles per call") end
+  if items.count(c, task.item) == 0 then
+    error("I don't have any " .. task.item .. " — craft or collect some first")
+  end
+  -- walk order: nearest-neighbour from the character
+  local ordered, pos = {}, c.position
+  while #tiles > 0 do
+    local bi, bd = 1, math.huge
+    for i, t in ipairs(tiles) do
+      local d = (t.x + 0.5 - pos.x) ^ 2 + (t.y + 0.5 - pos.y) ^ 2
+      if d < bd then bi, bd = i, d end
+    end
+    pos = { x = tiles[bi].x + 0.5, y = tiles[bi].y + 0.5 }
+    ordered[#ordered + 1] = table.remove(tiles, bi)
+  end
+  task._tiles, task._i, task._placed, task._skipped = ordered, 1, 0, {}
+  task._result = pat.result.name
+end
+
+-- Why the tile at t can't take this item, or nil.
+local function tile_refusal(surface, pat, t)
+  local cur = surface.get_tile(t.x, t.y)
+  if not cur.valid then return "outside the map" end
+  if cur.name == pat.result.name then return "already " .. pat.result.name end
+  if pat.tile_condition then
+    local ok = false
+    for _, tp in pairs(pat.tile_condition) do if tp.name == cur.name then ok = true break end end
+    if pat.invert then ok = not ok end
+    if not ok then return "can't go on " .. cur.name end
+  end
+  local cond = pat.condition and pat.condition.layers or {}
+  local mask = cur.prototype.collision_mask and cur.prototype.collision_mask.layers or {}
+  for layer in pairs(cond) do
+    if mask[layer] then return "can't go on " .. cur.name end
+  end
+  return nil
+end
+
+function M.place_tiles.tick(task)
+  local c = companion.get()
+  if not c then return gone() end
+  local pat = prototypes.item[task.item].place_as_tile_result
+  local surface = c.surface
+  local tiles = task._tiles
+
+  while task._i <= #tiles do
+    local t = tiles[task._i]
+    local center = { x = t.x + 0.5, y = t.y + 0.5 }
+    local reached = approach.ensure(task, c, center, c.build_distance)
+    if type(reached) == "table" then
+      task._skipped[#task._skipped + 1] = string.format("(%d, %d): %s", t.x, t.y, reached.detail)
+      task._i = task._i + 1
+      return nil
+    end
+    if reached ~= "ok" then return nil end
+    -- place every remaining tile already within reach, then walk on
+    local batch, hidden = {}, {}
+    local j = task._i
+    while j <= #tiles do
+      local u = tiles[j]
+      local dx, dy = u.x + 0.5 - c.position.x, u.y + 0.5 - c.position.y
+      if dx * dx + dy * dy > c.build_distance * c.build_distance then break end
+      if items.count(c, task.item) - #batch <= 0 then break end
+      local why = tile_refusal(surface, pat, u)
+      if why then
+        task._skipped[#task._skipped + 1] = string.format("(%d, %d): %s", u.x, u.y, why)
+      else
+        local cur = surface.get_tile(u.x, u.y)
+        local tile = { name = task._result, position = { u.x, u.y } }
+        -- a minable floor (concrete, soil) keeps the ground under it
+        local res = prototypes.tile[task._result]
+        if res.mineable_properties and res.mineable_properties.minable and not cur.prototype.mineable_properties.minable then
+          tile.hidden_tile = cur.name
+        end
+        batch[#batch + 1] = tile
+      end
+      j = j + 1
+    end
+    if #batch > 0 then
+      surface.set_tiles(batch, true, "abort_on_collision", true, true)
+      local n = 0
+      for _, tile in ipairs(batch) do
+        if surface.get_tile(tile.position[1], tile.position[2]).name == task._result then
+          n = n + 1
+        else
+          task._skipped[#task._skipped + 1] = string.format("(%d, %d): something stands there",
+            tile.position[1], tile.position[2])
+        end
+      end
+      if n > 0 then c.remove_item({ name = task.item, count = n }) end
+      task._placed = task._placed + n
+    end
+    task._i = j
+    if items.count(c, task.item) == 0 and task._i <= #tiles then
+      task._skipped[#task._skipped + 1] = string.format("%d tile(s) not placed: out of %s", #tiles - task._i + 1, task.item)
+      break
+    end
+  end
+
+  local detail = string.format("placed %d %s tile(s)", task._placed, task._result)
+  if #task._skipped > 0 then
+    local shown = {}
+    for i = 1, math.min(#task._skipped, 12) do shown[i] = task._skipped[i] end
+    detail = detail .. "; skipped " .. #task._skipped .. ": " .. table.concat(shown, "; ")
+      .. (#task._skipped > 12 and "; ..." or "")
+  end
+  return { status = task._placed > 0 and "done" or "failed", detail = detail }
+end
+
 return M
