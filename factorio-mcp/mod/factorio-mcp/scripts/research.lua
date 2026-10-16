@@ -147,7 +147,19 @@ function M.list_technologies(params)
           return tech.order or (tech.prototype and tech.prototype.order) or name
         end, name)
 
+        -- what unlocks a trigger tech (mine-entity, craft-item, capture-spawner, ...)
+        local trigger = safe(function()
+          local tr = tech.prototype.research_trigger
+          if not tr then return nil end
+          local out = { type = tr.type }
+          if tr.entity then out.entity = type(tr.entity) == "table" and tr.entity.name or tr.entity end
+          if tr.item then out.item = type(tr.item) == "table" and tr.item.name or tr.item end
+          if tr.count then out.count = tr.count end
+          return out
+        end, nil)
+
         techs[#techs + 1] = {
+          trigger = trigger,
           name = name, label = label_of(name), status = status,
           order = order, level = level, infinite = infinite,
           prereqs = prereqs, missing = missing, bill = bill,

@@ -487,6 +487,11 @@ def tech_tree(r: dict[str, Any]) -> str:
             tags.append("needs " + (", ".join(missing) if missing else "prerequisites not yet met"))
         elif missing:
             tags.append("missing " + ", ".join(missing))
+        tr = t.get("trigger")
+        if tr:
+            what_ = tr.get("entity") or tr.get("item") or ""
+            n = f" x{num(tr['count'])}" if tr.get("count") and tr["count"] > 1 else ""
+            tags.append(f"unlocks by: {str(tr.get('type')).replace('-', ' ')} {what_}{n}".rstrip())
         bill = t.get("bill") or {}
         if bill:
             tags.append("bill " + " + ".join(f"{num(v)} {k}" for k, v in sorted(bill.items())))
