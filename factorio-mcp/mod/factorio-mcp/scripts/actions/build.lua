@@ -465,7 +465,11 @@ local function tile_refusal(surface, pat, t)
     local ok = false
     for _, tp in pairs(pat.tile_condition) do if tp.name == cur.name then ok = true break end end
     if pat.invert then ok = not ok end
-    if not ok then return "can't go on " .. cur.name end
+    if not ok then
+      local names = {}
+      for _, tp in pairs(pat.tile_condition) do names[#names + 1] = tp.name end
+      return "can't go on " .. cur.name .. (pat.invert and "" or (" — only on " .. table.concat(names, ", ")))
+    end
   end
   local cond = pat.condition and pat.condition.layers or {}
   local mask = cur.prototype.collision_mask and cur.prototype.collision_mask.layers or {}

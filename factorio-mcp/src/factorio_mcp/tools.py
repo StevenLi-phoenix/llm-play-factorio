@@ -1193,11 +1193,18 @@ def register(app: MCPServer, game: Game) -> None:
         return f"Cargo pod launched from '{r['platform']}' down to {r['planet']}; check status in ~20 s."
 
     @tool("Fight visible enemies around a point with your equipped gun (walks into range, shoots, next target); "
-          "anchored to the radius; retreats below flee_below health.")
+          "anchored to the radius; retreats below flee_below health (straight away from the nearest enemy). "
+          "With a long gun it kites: it backs away from any enemy unit closer than keep_away while it keeps shooting "
+          "(default: gun range - 8 for guns over 20 range, e.g. 28 for the rocket launcher, beyond a strafer's 25; "
+          "0 turns kiting off).")
     async def fight(x: float | None = None, y: float | None = None, radius: Annotated[float, Field(ge=5, le=40)] = 20,
                     flee_below: Annotated[float, Field(ge=0.05, le=0.9)] = 0.3,
+                    keep_away: Annotated[float | None, Field(ge=0, le=40)] = None,
                     wait_s: WaitS = None, replace: Replace = False) -> str:
-        return await run_job({"type": "fight", "target": xy(x, y), "radius": radius, "flee_below": flee_below}, wait_s, replace)
+        task: dict[str, Any] = {"type": "fight", "target": xy(x, y), "radius": radius, "flee_below": flee_below}
+        if keep_away is not None:
+            task["keep_away"] = keep_away
+        return await run_job(task, wait_s, replace)
 
     @tool("Persistent job: guard an area — shoot enemies that come near, refill ammo turrets and repair structures "
           "from your inventory — until cancelled. Replaces your current jobs.")

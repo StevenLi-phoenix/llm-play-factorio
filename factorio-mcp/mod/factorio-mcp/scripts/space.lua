@@ -247,6 +247,14 @@ function M.platform_build(params)
         build_check_type = defines.build_check_type.manual_ghost }
       if not s.can_place_entity(spec) then
         why = "blocked (no foundation under it, overlaps a building, or invalid here)"
+        local proto = prototypes.entity[target]
+        for _, rule in pairs(proto and proto.tile_buildability_rules or {}) do
+          if rule.required_tiles and rule.required_tiles.layers and rule.required_tiles.layers.empty_space then
+            why = "blocked: a " .. target .. " must sit on the floor's edge with empty space (no floor) in "
+              .. "front of it, in the direction it faces (dir 0=N 4=E 8=S 12=W)"
+            break
+          end
+        end
       else
         local g = s.create_entity({ name = "entity-ghost", inner_name = target, position = { x, y },
           direction = dir, force = c.force })
