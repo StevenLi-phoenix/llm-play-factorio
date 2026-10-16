@@ -81,6 +81,23 @@ local function script_op(task, c, m)
   return { gained_total = gained_total, exhausted = exhausted or not e.valid, full = gained_total <= 0 }
 end
 
+-- Where to stand within reach of: the entity's centre for small things, but
+-- for big ones (a 14x8 ruin vault) the nearest point of its box, since its
+-- centre can be out of reach from every walkable tile around it.
+local function reach_point(task, c, e)
+  if task._rp_ent == e and task._rp then return task._rp end
+  local bb = e.bounding_box
+  local lt, rb = bb.left_top, bb.right_bottom
+  local pt = e.position
+  if rb.x - lt.x > 2.5 or rb.y - lt.y > 2.5 then
+    local p = c.position
+    pt = { x = math.max(lt.x + 0.5, math.min(p.x, rb.x - 0.5)),
+           y = math.max(lt.y + 0.5, math.min(p.y, rb.y - 0.5)) }
+  end
+  task._rp_ent, task._rp = e, pt
+  return pt
+end
+
 local function run_mining_op(task, c, m)
   local e = task._entity
   local inv = c.get_main_inventory()
@@ -123,9 +140,10 @@ local function run_mining_op(task, c, m)
     return { gained_total = 0, exhausted = false, full = true }
   end
 
+  local mp = (task._rp_ent == e and task._rp) or e.position
   local selected = false
   pcall(function()
-    c.update_selected_entity(e.position)
+    c.update_selected_entity(mp)
     selected = c.selected == e
   end)
   if not selected or game.tick - w.started > w.limit then
@@ -135,7 +153,7 @@ local function run_mining_op(task, c, m)
     m.remaining = nil
     return nil
   end
-  c.mining_state = { mining = true, position = e.position }
+  c.mining_state = { mining = true, position = mp }
   return nil
 end
 
@@ -200,7 +218,7 @@ local function tick_single(task, c)
     end
     result = run_mining_op(task, c, task._mine)
   else
-    local reached = approach.ensure(task, c, e.position, c.resource_reach_distance)
+    local reached = approach.ensure(task, c, reach_point(task, c, e), c.resource_reach_distance)
     if type(reached) == "table" then return reached end
     if reached ~= "ok" then return nil end
     result = run_mining_op(task, c, task._mine)
@@ -329,7 +347,7 @@ local function tick_composite(task, c)
     end
   end
 
-  local reached = approach.ensure(task, c, e.position, c.resource_reach_distance)
+  local reached = approach.ensure(task, c, reach_point(task, c, e), c.resource_reach_distance)
   if type(reached) == "table" then
     -- boxed in (drills, chests around it): try the next nearest instead
     m.skip = m.skip or {}
