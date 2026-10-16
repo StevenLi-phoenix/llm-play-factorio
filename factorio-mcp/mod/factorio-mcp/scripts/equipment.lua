@@ -261,8 +261,51 @@ local function unequip(c, kinds)
   return moved
 end
 
+-- Put equipment items (energy shields, solar panels, batteries, ...) from the
+-- main inventory into the worn armor's grid, one item per name listed.
+local function equip_grid(c, main, names)
+  local armor_inv = c.get_inventory(defines.inventory.character_armor)
+  local stack = armor_inv and armor_inv[1]
+  if not (stack and stack.valid_for_read and stack.grid) then
+    error("wear armor with an equipment grid first (e.g. armor=\"modular-armor\"), then fill its grid")
+  end
+  local grid = stack.grid
+  local placed, failed = {}, {}
+  for _, name in ipairs(names) do
+    local proto = prototypes.item[name]
+    if not (proto and proto.place_as_equipment_result) then
+      error(tostring(name) .. " is not armor equipment")
+    end
+    if main.get_item_count(name) < 1 then
+      failed[#failed + 1] = name .. " (none in my inventory)"
+    else
+      local eq = grid.put({ name = proto.place_as_equipment_result.name })
+      if eq then
+        main.remove({ name = name, count = 1 })
+        placed[#placed + 1] = name
+      else
+        failed[#failed + 1] = name .. " (no room left in the grid)"
+      end
+    end
+  end
+  local contents = {}
+  for _, eq in pairs(grid.equipment) do
+    contents[eq.name] = (contents[eq.name] or 0) + 1
+  end
+  return placed, failed, contents, grid.width .. "x" .. grid.height
+end
+
 function M.equip(params)
   local c = companion.require_companion()
+  if type(params.grid) == "table" and #params.grid > 0 then
+    local placed, failed, contents, size = equip_grid(c, c.get_main_inventory(), params.grid)
+    if params.gun == nil and params.ammo == nil and params.armor == nil then
+      local out = M.summary(c)
+      out.grid_placed, out.grid_failed, out.grid, out.grid_size = placed, failed, contents, size
+      return out
+    end
+    params._grid_result = { placed, failed, contents, size }
+  end
   if type(params.unequip) == "table" and #params.unequip > 0 then
     local moved = unequip(c, params.unequip)
     if params.gun == nil and params.ammo == nil and params.armor == nil then
@@ -296,7 +339,11 @@ function M.equip(params)
   if gun_slot then
     pcall(function() c.selected_gun_index = gun_slot end)
   end
-  return M.summary(c)
+  local out = M.summary(c)
+  if params._grid_result then
+    out.grid_placed, out.grid_failed, out.grid, out.grid_size = table.unpack(params._grid_result)
+  end
+  return out
 end
 
 return M

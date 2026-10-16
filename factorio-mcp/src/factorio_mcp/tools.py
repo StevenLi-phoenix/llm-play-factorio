@@ -728,15 +728,28 @@ def register(app: MCPServer, game: Game) -> None:
 
     @tool("Move a gun, ammo and/or armor from your main inventory into your equipment slots, and/or unequip slots "
           "(unequip=[\"ammo\"] moves the ammo slot's contents back to the main inventory; crafted or picked-up ammo "
-          "goes into the gun's ammo slot by itself).")
+          "goes into the gun's ammo slot by itself). grid lists equipment items (one entry per item, e.g. "
+          "[\"energy-shield-equipment\", \"energy-shield-equipment\", \"solar-panel-equipment\", \"battery-equipment\"]) "
+          "to put into the worn armor's grid; a grid needs power (solar panel or battery equipment) to run shields.")
     async def equip(gun: str | None = None, ammo: str | None = None, armor: str | None = None,
-                    unequip: list[Literal["gun", "ammo", "armor"]] | None = None) -> str:
-        if not (gun or ammo or armor or unequip):
-            raise ValueError("give gun, ammo, armor and/or unequip")
-        r = await game.call("equip", {"gun": gun, "ammo": ammo, "armor": armor, "unequip": unequip})
+                    unequip: list[Literal["gun", "ammo", "armor"]] | None = None,
+                    grid: Annotated[list[str] | None, Field(max_length=40)] = None) -> str:
+        if not (gun or ammo or armor or unequip or grid):
+            raise ValueError("give gun, ammo, armor, grid and/or unequip")
+        params: dict[str, Any] = {"gun": gun, "ammo": ammo, "armor": armor, "unequip": unequip}
+        if grid:
+            params["grid"] = grid
+        r = await game.call("equip", params)
         moved = as_list(r.get("unequipped"))
         head = f"Moved {', '.join(moved)} to the main inventory. " if moved else ""
-        return head + f"Equipped — gun {r.get('gun') or 'none'}, ammo {fmt.items_text(r.get('ammo')) or 'none'}, armor {r.get('armor') or 'none'}."
+        out = head + f"Equipped — gun {r.get('gun') or 'none'}, ammo {fmt.items_text(r.get('ammo')) or 'none'}, armor {r.get('armor') or 'none'}."
+        if grid:
+            placed, failed = as_list(r.get("grid_placed")), as_list(r.get("grid_failed"))
+            inside = ", ".join(f"{n} x{c}" for n, c in sorted((r.get("grid") or {}).items())) or "empty"
+            out += f" Grid {r.get('grid_size', '?')}: put in {len(placed)}"
+            out += f"; not placed: {', '.join(failed)}" if failed else ""
+            out += f". Grid now holds {inside}."
+        return out
 
     @tool("Leave the vehicle you are in.")
     async def exit_vehicle() -> str:
