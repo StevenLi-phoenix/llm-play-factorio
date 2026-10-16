@@ -161,6 +161,14 @@ function M.explain(c, entity_name, pos, direction)
   if me then
     return "your character is standing in the footprint"
   end
+  -- A fluid entity whose ground is fine is refused when it would join two
+  -- different fluids (a manual build check).
+  local fluid = false
+  pcall(function() fluid = #proto.fluidbox_prototypes > 0 end)
+  if fluid and surface.can_place_entity({ name = entity_name, position = pos, direction = direction, force = c.force }) then
+    return "probably: it would connect two different fluids (pipes or machines with other fluids next to it) — "
+      .. "leave a gap tile, use a pipe-to-ground, or turn the machine so its ports face away"
+  end
   -- Name what is in the way: an entity whose edge overlaps the footprint
   -- (found just outside it), else the tiles under it.
   local grown = { { area[1][1] - 0.3, area[1][2] - 0.3 }, { area[2][1] + 0.3, area[2][2] + 0.3 } }
