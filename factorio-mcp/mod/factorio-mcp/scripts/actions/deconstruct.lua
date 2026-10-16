@@ -61,16 +61,21 @@ function M.start(task)
     targets[1] = best
   elseif task.area and task.area.center and type(task.area.center.x) == "number" then
     local radius = math.min(tonumber(task.area.radius) or 5, AREA_MAX_RADIUS)
-    local found = {}
-    for _, e in ipairs(c.surface.find_entities_filtered({
+    local filter = {
       position = task.area.center, radius = radius, force = c.force,
-    })) do
+    }
+    if type(task.area.names) == "table" and #task.area.names > 0 then
+      filter.name = task.area.names
+    end
+    local found = {}
+    for _, e in ipairs(c.surface.find_entities_filtered(filter)) do
       if is_demolishable(e, c) then
         found[#found + 1] = { e = e, d = dist_sq(e.position, task.area.center) }
       end
     end
     if #found == 0 then
-      error("nothing of ours to demolish there")
+      error(filter.name and ("no " .. table.concat(filter.name, "/") .. " of ours within that radius")
+        or "nothing of ours to demolish there")
     end
     table.sort(found, function(a, b) return a.d < b.d end)
     for i = 1, math.min(#found, AREA_MAX_ENTITIES) do

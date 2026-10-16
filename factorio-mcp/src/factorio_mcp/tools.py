@@ -1079,11 +1079,18 @@ def register(app: MCPServer, game: Game) -> None:
         return "\n".join(lines)
 
     @tool("Mine your force's own buildings back into your inventory (vanilla mining time): the nearest one at x,y, "
-          "or all within area_radius (max 10 tiles, 50 buildings).")
+          "or, with area_radius, every building named in names within that radius (max 10 tiles, 50 buildings). "
+          "names is required with area_radius, so an area sweep never takes down neighbours' machines, belts or poles.")
     async def deconstruct(x: Coord, y: Coord, area_radius: Annotated[float | None, Field(ge=1, le=10)] = None,
+                          names: list[str] | None = None,
                           wait_s: WaitS = None, replace: Replace = False) -> str:
-        task = ({"type": "deconstruct", "area": {"center": {"x": x, "y": y}, "radius": area_radius}}
-                if area_radius else {"type": "deconstruct", "target": {"x": x, "y": y}})
+        if area_radius:
+            if not names:
+                return ("area_radius needs names — list the entity names to take down (e.g. names=[\"wooden-chest\", "
+                        "\"transport-belt\"]); an unfiltered sweep demolishes every neighbouring building too")
+            task = {"type": "deconstruct", "area": {"center": {"x": x, "y": y}, "radius": area_radius, "names": names}}
+        else:
+            task = {"type": "deconstruct", "target": {"x": x, "y": y}}
         return await run_job(task, wait_s, replace)
 
     @tool("Walk into reach of the rocket silo at x,y and launch its rocket (built from the silo's rocket parts). "
