@@ -156,6 +156,7 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     "platform_schedule": (0, 3, 0), "landing_pad_requests": (0, 3, 1), "ride_rocket": (0, 3, 0), "drop_to_planet": (0, 3, 0),
     "set_filters": (0, 3, 5),  # introduced in mod 0.3.5
     "place_tiles": (0, 3, 8),
+    "chest_requests": (0, 3, 12),
 }
 
 
@@ -1183,6 +1184,16 @@ def register(app: MCPServer, game: Game) -> None:
         r = await game.call("landing_pad_requests", {"x": x, "y": y, "items": items})
         return (f"Landing pad at ({r['position']['x']}, {r['position']['y']}) requests: "
                 + (fmt.items_text(r.get("requests")) or "nothing") + ". Holds: "
+                + (fmt.items_text(r.get("holds")) or "nothing") + ".")
+
+    @tool("Set what a requester or buffer chest at x,y asks its logistic network for (replaces its list; {} "
+          "clears). Logistic robots then bring those items from provider and storage chests in the same network.")
+    async def chest_requests(x: float, y: float, items: dict[str, int]) -> str:
+        r = await game.call("chest_requests", {"x": x, "y": y, "items": items})
+        net = (f"in a logistic network with {r.get('robots', 0)} idle robots" if r.get("network")
+               else "NOT in any logistic network (no roboport covers it)")
+        return (f"{r['name']} at ({r['position']['x']}, {r['position']['y']}) requests: "
+                + (fmt.items_text(r.get("requests")) or "nothing") + f"; {net}. Holds: "
                 + (fmt.items_text(r.get("holds")) or "nothing") + ".")
 
     @tool("Set a platform's route (planets in order, each with a wait) and/or pause/unpause it. A platform flies "

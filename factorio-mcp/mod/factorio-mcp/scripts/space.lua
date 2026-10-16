@@ -438,6 +438,46 @@ function M.landing_pad_requests(params)
     holds = inv and items.inventory_map(inv) or {} }
 end
 
+-- rpc "chest_requests": what a requester or buffer chest at x,y asks the
+-- logistic network for. items = {name = count}; {} clears.
+function M.chest_requests(params)
+  local c = companion.require_companion()
+  if type(params.x) ~= "number" or type(params.y) ~= "number" then error("give x, y of the requester chest") end
+  if type(params.items) ~= "table" then error('give items = {"name": count, ...} ({} clears)') end
+  local chest = c.surface.find_entities_filtered({ type = "logistic-container", position = { params.x, params.y },
+    radius = 1, force = c.force })[1]
+  if not chest then error(string.format("no logistic chest at (%.1f, %.1f)", params.x, params.y)) end
+  local mode = chest.prototype.logistic_mode
+  if mode ~= "requester" and mode ~= "buffer" then
+    error(chest.name .. " is a " .. tostring(mode) .. " chest; only requester and buffer chests take requests")
+  end
+  local secs = chest.get_logistic_sections()
+  local sec
+  for i = 1, secs.sections_count do
+    local s = secs.get_section(i)
+    if s.is_manual then sec = s break end
+  end
+  sec = sec or secs.add_section()
+  for j = sec.filters_count, 1, -1 do sec.clear_slot(j) end
+  local names = {}
+  for name in pairs(params.items) do names[#names + 1] = name end
+  table.sort(names)
+  local slot = 0
+  for _, name in ipairs(names) do
+    if not prototypes.item[name] then error("unknown item '" .. name .. "'") end
+    local n = math.floor(tonumber(params.items[name]) or 0)
+    if n > 0 then
+      slot = slot + 1
+      sec.set_slot(slot, { value = { type = "item", name = name, quality = "normal" }, min = n })
+    end
+  end
+  local inv = chest.get_inventory(defines.inventory.chest)
+  local net = chest.logistic_network
+  return { name = chest.name, position = { x = chest.position.x, y = chest.position.y },
+    requests = hub_requests(chest), holds = inv and items.inventory_map(inv) or {},
+    network = net and true or false, robots = net and net.available_logistic_robots or 0 }
+end
+
 local WAITS = {
   requests = { type = "all_requests_satisfied", compare_type = "or" },
 }
