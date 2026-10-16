@@ -299,6 +299,23 @@ local function inspect_one(params)
   local ok_recipe, recipe = pcall(e.get_recipe)
   if ok_recipe and recipe then out.recipe = recipe.name end
 
+  -- Item filters (inserters, splitters) as set_filters left them.
+  pcall(function()
+    if e.type == "inserter" and (e.filter_slot_count or 0) > 0 and e.use_filters then
+      local fs = {}
+      for i = 1, e.filter_slot_count do
+        local f = e.get_filter(i)
+        if f then fs[#fs + 1] = f.name end
+      end
+      out.filters = fs
+      out.filter_mode = e.inserter_filter_mode
+    elseif e.type == "splitter" then
+      local f = e.splitter_filter
+      out.splitter = { filter = f and f.name or nil, input_priority = e.splitter_input_priority,
+                       output_priority = e.splitter_output_priority }
+    end
+  end)
+
   local ok_progress, progress = pcall(function() return e.crafting_progress end)
   if ok_progress and type(progress) == "number" then
     out.crafting_progress = round2(progress)

@@ -154,6 +154,7 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     "platforms": (0, 3, 0), "platform_order": (0, 3, 0), "platform_build": (0, 3, 0),
     "platform_deconstruct": (0, 3, 0), "platform_configure": (0, 3, 0), "platform_requests": (0, 3, 0),
     "platform_schedule": (0, 3, 0), "landing_pad_requests": (0, 3, 1), "ride_rocket": (0, 3, 0), "drop_to_planet": (0, 3, 0),
+    "set_filters": (0, 3, 5),  # introduced in mod 0.3.5
 }
 
 
@@ -865,6 +866,21 @@ def register(app: MCPServer, game: Game) -> None:
     @tool("Set the recipe of the crafting machine at x,y (walks within reach).")
     async def set_recipe(x: Coord, y: Coord, recipe: str, wait_s: WaitS = None, replace: Replace = False) -> str:
         return await run_job({"type": "set_recipe", "target": {"x": x, "y": y}, "recipe": recipe}, wait_s, replace)
+
+    @tool("Set the filters of the inserter or splitter at x,y (walks within reach). Inserter: item names "
+          "([] clears) and mode whitelist (default) or blacklist. Splitter: one item; that item goes to the output_priority side (left/right, default left) and everything "
+          "else to the other; input_priority/output_priority alone set priorities. inspect_entity shows them.")
+    async def set_filters(x: Coord, y: Coord, filters: list[str] | None = None,
+                          mode: Literal["whitelist", "blacklist"] | None = None,
+                          input_priority: Literal["left", "right", "none"] | None = None,
+                          output_priority: Literal["left", "right", "none"] | None = None,
+                          wait_s: WaitS = None, replace: Replace = False) -> str:
+        task: dict[str, Any] = {"type": "set_filters", "target": {"x": x, "y": y}}
+        for k, v in (("filters", filters), ("mode", mode), ("input_priority", input_priority),
+                     ("output_priority", output_priority)):
+            if v is not None:
+                task[k] = v
+        return await run_job(task, wait_s, replace)
 
     @tool("Rotate the entity at x,y one step, or to a 16-way direction (walks within reach). An inserter's "
           "direction is the side it PICKS UP FROM — facing north it picks from the north tile and drops south, "

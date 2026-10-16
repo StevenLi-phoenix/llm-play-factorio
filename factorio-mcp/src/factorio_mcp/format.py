@@ -145,6 +145,14 @@ def inspect(e: dict[str, Any]) -> str:
     if e.get("recipe"):
         prog = f" ({round(e['crafting_progress'] * 100)}% done)" if e.get("crafting_progress") is not None else ""
         parts.append(f"Recipe: {e['recipe']}{prog}.")
+    if e.get("filters") is not None:
+        fl = ", ".join(e["filters"]) or "none"
+        parts.append(f"Filters ({e.get('filter_mode') or 'whitelist'}): {fl}.")
+    if e.get("splitter"):
+        sp = e["splitter"]
+        filt = f"filter {sp['filter']} -> {sp.get('output_priority')} output" if sp.get("filter") else "no filter"
+        parts.append(f"Splitter: {filt}; input priority {sp.get('input_priority')}, "
+                     f"output priority {sp.get('output_priority')}.")
     if e.get("burning"):
         parts.append(f"Burning {e['burning']} ({num(e.get('remaining_burning_kj', 0))} kJ left in it).")
     if e.get("energy_kj"):

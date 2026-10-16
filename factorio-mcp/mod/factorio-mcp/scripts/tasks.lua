@@ -33,6 +33,7 @@ local runners = {
   place = build.place,
   rotate = build.rotate,
   set_recipe = build.set_recipe,
+  set_filters = build.set_filters,
   craft = craft,
   insert = transfer.insert,
   extract = transfer.extract,

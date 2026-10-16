@@ -311,4 +311,92 @@ function M.set_recipe.tick(task)
   }
 end
 
+-- ------------------------------------------------------------ set_filters
+
+-- Filters of an inserter (item whitelist/blacklist) or a splitter (one item
+-- filter plus input/output priority), like clicking it open.
+M.set_filters = {}
+
+function M.set_filters.start(task)
+  companion.require_companion()
+  validate_position(task.target, "set_filters")
+  if task.filters ~= nil and type(task.filters) ~= "table" then
+    error("filters must be a list of item names ([] clears)")
+  end
+  for _, f in ipairs(task.filters or {}) do
+    if type(f) ~= "string" or not prototypes.item[f] then error("unknown item: '" .. tostring(f) .. "'") end
+  end
+  if task.mode and task.mode ~= "whitelist" and task.mode ~= "blacklist" then
+    error("mode must be whitelist or blacklist")
+  end
+end
+
+local PRIORITIES = { left = true, right = true, none = true }
+
+function M.set_filters.tick(task)
+  local c = companion.get()
+  if not c then return gone() end
+
+  local reached = approach.ensure(task, c, task.target, c.reach_distance)
+  if type(reached) == "table" then return reached end
+  if reached ~= "ok" then return nil end
+
+  local e, pick_note = approach.find_entity_near(c, task.target)
+  task._pick_note = pick_note
+  if not e then
+    return { status = "failed",
+      detail = string.format("nothing at (%.1f, %.1f) to set filters on", task.target.x, task.target.y) }
+  end
+  local done = {}
+  if e.type == "inserter" then
+    local slots = e.filter_slot_count or 0
+    if slots == 0 then
+      return { status = "failed", detail = "the " .. e.name .. " has no filter slots — use a fast or bulk inserter" }
+    end
+    if task.filters then
+      if #task.filters > slots then
+        return { status = "failed", detail = string.format("the %s has only %d filter slots", e.name, slots) }
+      end
+      e.use_filters = #task.filters > 0
+      for i = 1, slots do
+        local f = task.filters[i]
+        e.set_filter(i, f and { name = f } or nil)
+      end
+      done[#done + 1] = #task.filters > 0 and ("filters " .. table.concat(task.filters, ", ")) or "filters cleared"
+    end
+    if task.mode then
+      e.inserter_filter_mode = task.mode
+      done[#done + 1] = task.mode
+    end
+  elseif e.type == "splitter" then
+    if task.filters then
+      if #task.filters > 1 then
+        return { status = "failed", detail = "a splitter takes one item filter" }
+      end
+      local f = task.filters[1]
+      e.splitter_filter = f and { name = f } or nil
+      done[#done + 1] = f and ("filter " .. f .. " (it goes to the " .. (task.output_priority or e.splitter_output_priority) .. " output)")
+        or "filter cleared"
+    end
+    for _, k in ipairs({ "input_priority", "output_priority" }) do
+      local v = task[k]
+      if v then
+        if not PRIORITIES[v] then return { status = "failed", detail = k .. " must be left, right or none" } end
+        e["splitter_" .. k] = v
+        done[#done + 1] = k:gsub("_", " ") .. " " .. v
+      end
+    end
+    if task.filters and task.filters[1] and e.splitter_output_priority == "none" then
+      e.splitter_output_priority = "left"
+      done[#done + 1] = "output priority left (a filter needs a side)"
+    end
+  else
+    return { status = "failed", detail = "the " .. e.name .. " has no filters — inserters and splitters do" }
+  end
+  if #done == 0 then return { status = "failed", detail = "nothing to set: give filters, mode or a priority" } end
+  provenance.record(e, "set " .. table.concat(done, "; "), task)
+  return { status = "done", detail = string.format("%s at (%.1f, %.1f): %s", e.name, e.position.x, e.position.y,
+    table.concat(done, "; ")) }
+end
+
 return M
