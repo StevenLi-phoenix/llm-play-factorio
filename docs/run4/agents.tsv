@@ -1,0 +1,437 @@
+name	role	model	start	end	task
+planner	planner	claude-opus-5-5 (main session)	2026-10-15T04:49:12Z		no character
+iron-1	worker	sonnet/medium	2026-10-15T04:49:12Z	2026-10-15T05:21:23Z	iron
+iron-2	worker	sonnet/medium	2026-10-15T04:49:12Z	2026-10-15T05:08:49Z	iron-2
+copper-1	worker	sonnet/medium	2026-10-15T04:49:12Z	2026-10-15T05:08:49Z	copper
+coal-1	worker	sonnet/medium	2026-10-15T04:49:12Z	2026-10-15T05:24:10Z	coal
+stone-1	worker	sonnet/medium	2026-10-15T04:49:12Z	2026-10-15T05:12:45Z	stone
+power-1	worker	sonnet/medium	2026-10-15T04:49:12Z	2026-10-15T05:29:11Z	power
+science-1	worker	sonnet/medium	2026-10-15T05:08:49Z		drives iron-2: labs + red science
+coal-2	worker	sonnet/medium	2026-10-15T05:08:49Z	2026-10-15T05:45:18Z	drives copper-1: coal drills + copper fuel
+coal-3	worker	sonnet/medium	2026-10-15T05:12:45Z	2026-10-15T05:25:22Z	drives stone-1: coal drills
+red-1	worker	sonnet/medium	2026-10-15T05:21:23Z	2026-10-15T05:43:16Z	drives iron-1: red science automation
+coal-trunk	worker	sonnet/medium	2026-10-15T05:24:10Z	2026-10-15T05:39:16Z	drives coal-1: electric coal trunk
+iron-smelt	worker	sonnet/medium	2026-10-15T05:25:22Z		drives stone-1: electric iron smelting v1
+green-1	worker	sonnet/medium	2026-10-15T05:29:11Z	2026-10-15T05:44:01Z	drives power-1: green science
+oil-1	worker	sonnet/medium	2026-10-15T05:39:16Z		drives coal-1 (fresh): oil field prep + power line
+feed-1	worker	sonnet/medium	2026-10-15T05:43:16Z		drives iron-1 (fresh): plate belts to science
+mall-1	worker	sonnet/medium	2026-10-15T05:44:01Z		drives power-1 (fresh): mall + power upkeep
+iron-smelt-2	worker	sonnet/medium	2026-10-15T05:45:18Z		drives copper-1 (fresh): second iron column
+steel-1	worker	sonnet/medium	2026-10-15T05:45:33Z		same agent as oil-1: steel line
+ore-1	worker	sonnet/medium	2026-10-15T05:49:58Z		drives stone-1 (fresh): iron ore + blocked smelters
+science-2	worker	sonnet/medium	2026-10-15T05:49:58Z		drives iron-2 (fresh): labs to 24, red/green to 1/s
+engine-1	worker	sonnet/medium	2026-10-15T05:52:24Z		same agent as ore-1: engine unit line
+copper-2	worker	sonnet/medium	2026-10-15T05:54:24Z		same agent as feed-1: second copper column
+iron-3	worker	sonnet/medium	2026-10-15T05:55:40Z		same agent as feed-1: copper merge fix + third iron column
+green-2	worker	sonnet/medium	2026-10-15T05:57:31Z		same agent as feed-1: green pack scaling
+circuit-1	worker	sonnet/medium	2026-10-15T05:58:34Z		same agent as science-2: circuit block for green
+green-3	worker	sonnet/medium	2026-10-15T06:03:29Z		drives iron-1 (fresh): second green block (option b)
+power-2	worker	sonnet/medium	2026-10-15T06:07:35Z		drives stone-1 (fresh): double power
+steel-2	worker	sonnet/medium	2026-10-15T06:09:18Z		drives copper-1 (fresh): belt-fed steel
+oil-link	worker	sonnet/medium	2026-10-15T06:11:47Z		drives power-1 (fresh): oil site <-> base link, blue site
+oil-block	worker	sonnet/medium	2026-10-15T06:13:54Z		same agent as oil-1: refinery at base oil block
+iron-3	worker	sonnet/medium	2026-10-15T06:16:34Z		drives iron-2 (fresh): third iron column
+copper-2	worker	sonnet/medium	2026-10-15T06:17:22Z		drives coal-1 (fresh): second copper column
+chem-1	worker	sonnet/medium	2026-10-15T06:24:30Z		same agent as iron-3: chemical plants
+blue-1	worker	sonnet/medium	2026-10-15T06:24:53Z		same agent as oil-link: adv circuits + blue science
+labs-3	worker	sonnet/medium	2026-10-15T06:26:21Z		drives iron-1 (fresh): labs to 32, red to 60/min
+iron-4	worker	sonnet/medium	2026-10-15T06:27:52Z		same agent as power-2: boiler coal + third iron column
+engine-2	worker	sonnet/medium	2026-10-15T06:29:21Z		drives copper-1 (fresh): engines to 30/min + belt to blue
+iron-south	worker	sonnet/medium	2026-10-15T06:34:07Z		drives stone-1 (fresh): south iron outpost
+copper-scout	worker	sonnet/medium	2026-10-15T06:38:10Z		same agent as labs-3: find copper
+iron-east	worker	sonnet/medium	2026-10-15T06:43:43Z		drives coal-1 (fresh): east iron outpost
+chem-2	worker	sonnet/medium	2026-10-15T06:45:47Z		drives iron-2 (fresh): sulfur, coal belt, acid
+oil-2	worker	sonnet/medium	2026-10-15T06:49:02Z		drives copper-1 (fresh): scale oil
+blue-2	worker	sonnet/medium	2026-10-15T06:49:54Z		drives power-1 (fresh): blue lab inserters, blue scaling
+iron-south-2	worker	sonnet/medium	2026-10-15T07:03:01Z		drives stone-1 (fresh): deliver south plates, steel, coal
+mall-2	worker	sonnet/medium	2026-10-15T07:03:24Z		drives iron-1 (fresh): mall expansion
+acid-1	worker	sonnet/medium	2026-10-15T07:10:19Z		drives iron-2 (fresh): acid + batteries
+silo-prep	worker	sonnet/medium	2026-10-15T07:14:12Z		drives coal-1 (fresh): concrete + steel stockpile
+oil-3	worker	sonnet/medium	2026-10-15T07:16:19Z		drives copper-1 (fresh): advanced oil, cracking, lubricant
+mall-3	worker	sonnet/medium	2026-10-15T07:20:53Z		drives iron-1 (fresh): iron-east -> mall
+coal-4	worker	sonnet/medium	2026-10-15T07:25:40Z		drives stone-1 (fresh): coal for boilers + south smelters
+proc-1	worker	sonnet/medium	2026-10-15T07:29:48Z		same agent as acid-1: processing units
+solar-1	worker	sonnet/medium	2026-10-15T07:30:07Z		same agent as mall-3: solar field
+blue-3	worker	sonnet/medium	2026-10-15T07:30:23Z		drives power-1 (fresh): blue to 40/min
+solid-fuel	worker	sonnet/medium	2026-10-15T07:37:23Z		same agent as coal-4: solid fuel
+copper-out-1	worker	sonnet/medium	2026-10-15T07:42:37Z		drives iron-2 (fresh): far copper outpost
+eengine-1	worker	sonnet/medium	2026-10-15T07:42:59Z		drives copper-1 (fresh): electric engines + LDS
+plastic2-rfuel	worker	sonnet/medium	2026-10-15T07:43:30Z		same agent as blue-3: plastic-2 + rocket fuel
+proc-2	worker	sonnet/medium	2026-10-15T07:45:49Z		drives stone-1 (fresh): processing-unit block
+silo-1	worker	sonnet/medium	2026-10-15T07:55:26Z		drives power-1 (fresh): silo site + stockpile
+copper-smelt-east	worker	sonnet/medium	2026-10-15T08:00:30Z		drives iron-1 (fresh): base copper smelter for outpost
+space-prep	worker	sonnet/medium	2026-10-15T08:03:10Z		same agent as silo-1: foundation + starter pack machines
+coal-out	worker	sonnet/medium	2026-10-15T08:03:42Z		drives coal-1 (fresh): coal outpost
+proc-3	worker	sonnet/medium	2026-10-15T08:05:33Z		drives stone-1 (fresh): PU block scale-up
+copper-home-3	worker	sonnet/medium	2026-10-15T08:07:06Z		same agent as silo-1: pipes + home copper drills
+copper-smelt-2	worker	sonnet/medium	2026-10-15T08:15:12Z		drives iron-2 (fresh): second copper furnace column
+space-1	worker	sonnet/medium	2026-10-15T08:18:39Z		drives copper-1 (fresh): silo + first platform
+lds-2	worker	sonnet/medium	2026-10-15T08:23:33Z		drives iron-1 (fresh): automate LDS + e-engine inputs
+power-3	worker	sonnet/medium	2026-10-15T08:28:45Z		drives power-1 (fresh): boilers 13-24
+copper-lanes	worker	sonnet/medium	2026-10-15T08:29:08Z		drives iron-2 (fresh): copper plate lanes
+plastic-2	worker	sonnet/medium	2026-10-15T08:32:29Z		same agent as copper-lanes: more plastic
+supply-1	worker	sonnet/medium	2026-10-15T08:48:13Z		drives coal-1 (fresh): runner + steel/circuit fixes
+space-items	worker	sonnet/medium	2026-10-15T08:55:12Z		drives stone-1 (fresh): space mall + UP chest
+iron-steel	worker	sonnet/medium	2026-10-15T08:58:49Z		drives iron-2 (fresh): iron to steel column
+pu-4	worker	sonnet/medium	2026-10-15T09:10:14Z		drives iron-2 (fresh)
+lds-3	worker	sonnet/medium	2026-10-15T09:10:14Z		drives stone-1 (fresh)
+circuit-2	worker	sonnet/medium	2026-10-15T09:23:34Z		drives iron-2 (fresh)
+copper-3	worker	sonnet/medium	2026-10-15T09:23:34Z		drives power-1 (fresh)
+space-items-2	worker	sonnet/medium	2026-10-15T09:30:50Z		drives stone-1 (fresh)
+space-1	done		2026-10-15T09:43:21Z		285k
+space-2	worker	sonnet/medium	2026-10-15T09:43:21Z		drives copper-1 (fresh)
+ground-1	worker	sonnet/medium	2026-10-15T09:43:21Z		drives stone-1 (fresh)
+steel-3	worker	sonnet/medium	2026-10-15T09:59:10Z		drives stone-1 (fresh)
+iron-4	worker	sonnet/medium	2026-10-15T10:00:55Z		drives iron-2 (fresh)
+space-2	done		2026-10-15T10:19:44Z		148k
+iron-4	done		2026-10-15T10:19:44Z		143k
+space-3	worker	sonnet/medium	2026-10-15T10:19:44Z		drives copper-1 (fresh)
+steel-4	worker	sonnet/medium	2026-10-15T10:26:14Z		drives stone-1 (fresh)
+steel-4	done		2026-10-15T11:01:23Z		196k
+steel-5	worker	sonnet/medium	2026-10-15T11:01:23Z		drives stone-1 (fresh)
+space-3	done		2026-10-15T11:13:00Z		183k
+space-4	worker	sonnet/medium	2026-10-15T11:13:00Z		drives copper-1 (fresh)
+pu-5	worker	sonnet/medium	2026-10-15T11:27:52Z		drives iron-2 (fresh)
+pu-5	done		2026-10-15T11:51:37Z		213k
+pu-6	worker	sonnet/medium	2026-10-15T11:51:37Z		drives iron-2 (fresh)
+space-4	done		2026-10-15T11:57:52Z		211k
+space-5	worker	sonnet/medium	2026-10-15T11:57:52Z		drives copper-1 (fresh)
+ground-2	worker	sonnet/medium	2026-10-15T11:57:52Z		drives stone-1 (fresh)
+ground-2	done		2026-10-15T12:15:04Z		177k
+ground-3	worker	sonnet/medium	2026-10-15T12:15:04Z		drives stone-1 (fresh)
+blue-4	worker	sonnet/medium	2026-10-15T12:15:17Z		drives power-1 (fresh)
+space-5	done		2026-10-15T12:18:56Z		188k
+space-6	worker	sonnet/medium	2026-10-15T12:18:56Z		drives copper-1 (fresh)
+pu-6	done		2026-10-15T12:23:54Z		169k
+iron-5	worker	sonnet/medium	2026-10-15T12:23:54Z		drives iron-2 (fresh)
+blue-4	done		2026-10-15T12:28:58Z		141k
+blue-5	worker	sonnet/medium	2026-10-15T12:28:58Z		drives power-1 (fresh)
+vulcanus-kit	worker	sonnet/medium	2026-10-15T12:34:33Z		drives stone-1 (fresh)
+iron-5	done		2026-10-15T12:42:54Z		167k
+coal-5	worker	sonnet/medium	2026-10-15T12:42:54Z		drives iron-2 (fresh)
+solar-2	worker	sonnet/medium	2026-10-15T12:42:54Z		drives coal-1 (fresh)
+blue-5	done		2026-10-15T13:00:06Z		168k
+supply-2	worker	sonnet/medium	2026-10-15T13:00:06Z		drives power-1 (fresh)
+vulcanus-plan	worker	sonnet/medium	2026-10-15T13:19:23Z		drives stone-1 (fresh)
+space-6	done		2026-10-15T13:20:07Z		361k (over budget)
+ship-1	worker	sonnet/medium	2026-10-15T13:20:07Z		drives iron-2 (fresh)
+supply-2	done		2026-10-15T13:22:47Z		177k
+res-1	worker	sonnet/medium	2026-10-15T13:22:47Z		drives power-1 (fresh)
+vulcanus-plan	done		2026-10-15T13:37:58Z		125k
+power-fix	worker	sonnet/medium	2026-10-15T13:37:58Z		drives stone-1 (fresh)
+solar-2	done		2026-10-15T13:44:24Z		182k
+power-fix	done		2026-10-15T13:45:12Z		115k
+kit-2	worker	sonnet/medium	2026-10-15T13:45:35Z		drives stone-1 (fresh)
+res-1	done		2026-10-15T13:49:32Z		180k
+copper-4	worker	sonnet/medium	2026-10-15T13:49:32Z		drives power-1 (fresh)
+copper-4	done		2026-10-15T14:11:51Z		179k
+kit-2	done		2026-10-15T14:21:18Z		157k
+ship-supply	worker	sonnet/medium	2026-10-15T14:21:26Z		drives stone-1 (fresh)
+ship-1	done		2026-10-15T14:24:32Z		236k
+ship-2	worker	sonnet/medium	2026-10-15T14:24:32Z		drives iron-2 (fresh)
+vulcan-scout	worker	sonnet/medium	2026-10-15T14:24:32Z		drives copper-1 (fresh)
+vulcan-scout	done		2026-10-15T14:37:26Z		136k
+vulcan-1	worker	sonnet/medium	2026-10-15T14:37:26Z		drives copper-1 (fresh)
+ship-supply	done		2026-10-15T14:38:44Z		118k
+ship-2	done		2026-10-15T14:45:29Z		155k
+ship-3	worker	sonnet/medium	2026-10-15T14:45:29Z		drives iron-2 (fresh, on beta)
+silo-op	worker	sonnet/medium	2026-10-15T14:45:29Z		drives stone-1 (fresh)
+vulcan-1	done		2026-10-15T14:47:21Z		99k
+vulcan-2	worker	sonnet/medium	2026-10-15T14:47:21Z		drives copper-1 (fresh)
+vulcan-2	done		2026-10-15T15:07:45Z		98k
+purple-1	worker	sonnet/medium	2026-10-15T15:08:02Z		drives power-1 (fresh)
+purple-1	done		2026-10-15T15:19:21Z		166k
+purple-2	worker	sonnet/medium	2026-10-15T15:19:21Z		drives power-1 (fresh)
+purple-3	worker	sonnet/medium	2026-10-15T15:19:21Z		drives coal-1 (fresh)
+ship-3	done		2026-10-15T15:30:31Z		206k
+ship-4	worker	sonnet/medium	2026-10-15T15:30:31Z		drives iron-2 (fresh, on beta)
+silo-op	done		2026-10-15T15:40:40Z		157k
+purple-3	done		2026-10-15T15:51:46Z		277k
+purple-2	done		2026-10-15T15:52:49Z		198k
+gamma-1	worker	sonnet/medium	2026-10-15T15:53:00Z		drives stone-1 (fresh)
+ship-4	done		2026-10-15T15:55:45Z		192k
+ship-5	worker	sonnet/medium	2026-10-15T15:55:45Z		drives iron-2 (fresh, on beta)
+ship-5	done		2026-10-15T16:37:21Z		183k
+flight-1	worker	sonnet/medium	2026-10-15T16:37:21Z		drives iron-2 (fresh, on beta)
+flight-1	done		2026-10-15T16:51:24Z		98k
+vulcan-power	worker	sonnet/medium	2026-10-15T16:51:24Z		drives iron-2 (fresh, Vulcanus)
+vulcan-3	worker	sonnet/medium	2026-10-15T16:51:24Z		drives copper-1 (fresh, Vulcanus)
+vulcan-3	done		2026-10-15T16:57:10Z		103k (character died on Vulcanus)
+runner-1	worker	sonnet/medium	2026-10-15T16:57:10Z		drives copper-1 (fresh, Nauvis)
+runner-1	done		2026-10-15T17:10:16Z		105k
+gamma-1	done		2026-10-15T17:10:58Z		229k
+pu-7	worker	sonnet/medium	2026-10-15T17:10:58Z		drives power-1 (fresh)
+gamma-2	worker	sonnet/medium	2026-10-15T17:10:58Z		drives stone-1 (fresh)
+vulcan-power	done		2026-10-15T17:13:58Z		
+vulcan-sci	worker	sonnet/medium	2026-10-15T17:13:58Z		drives iron-2 (fresh, Vulcanus)
+pu-7	done		2026-10-15T17:22:05Z		147k
+copper-5	worker	sonnet/medium	2026-10-15T17:22:05Z		drives power-1 (fresh)
+gamma-2	done		2026-10-15T17:25:36Z		105k
+gamma-3	worker	sonnet/medium	2026-10-15T17:25:36Z		drives stone-1 (fresh)
+copper-5	done		2026-10-15T17:31:10Z		122k
+purple-4	worker	sonnet/medium	2026-10-15T17:31:38Z		drives power-1 (fresh)
+purple-4	done		2026-10-15T17:54:20Z		169k
+delta	worker	sonnet/medium	2026-10-15T17:54:47Z		drives iron-1
+uranium-1	worker	sonnet/medium	2026-10-15T17:54:47Z		drives coal-1
+gamma-3	done		2026-10-15T17:56:14Z		161k
+uranium-1	done		2026-10-15T18:10:58Z		100k
+vulcan-sci	done		2026-10-15T18:25:52Z		206k, 97 met packs
+vulcan-sci-2	worker	sonnet/medium	2026-10-15T18:25:52Z		drives iron-2
+delta	done		2026-10-15T18:31:21Z		207k
+delta-2	worker	sonnet/medium	2026-10-15T18:31:21Z		drives iron-1
+supply-3	worker	sonnet/medium	2026-10-15T18:31:21Z		drives coal-1
+delta-2	done		2026-10-15T18:54:45Z		129k
+fuel-1	worker	sonnet/medium	2026-10-15T18:54:45Z		drives stone-1
+steel-6	worker	sonnet/medium	2026-10-15T18:54:45Z		drives power-1
+supply-3	done		2026-10-15T19:02:39Z		162k
+power-2	worker	sonnet/medium	2026-10-15T19:02:50Z		drives coal-1
+vulcan-sci-2	done		2026-10-15T19:11:56Z		204k, 128 met
+utility-1	worker	sonnet/medium	2026-10-15T19:12:14Z		drives copper-1
+fuel-1	done		2026-10-15T19:12:25Z		162k
+fuel-2	worker	sonnet/medium	2026-10-15T19:12:25Z		drives stone-1
+delta-3	worker	sonnet/medium	2026-10-15T19:12:34Z		drives iron-1
+steel-6	done		2026-10-15T19:19:58Z		177k
+military-1	worker	sonnet/medium	2026-10-15T19:19:58Z		drives power-1
+utility-1	done		2026-10-15T19:24:23Z		168k
+utility-2	worker	sonnet/medium	2026-10-15T19:24:23Z		drives copper-1
+fuel-2	done		2026-10-15T19:27:48Z		156k
+oil-2	worker	sonnet/medium	2026-10-15T19:27:48Z		drives stone-1
+oil-2	done		2026-10-15T19:34:39Z		104k
+gamma-4	worker	sonnet/medium	2026-10-15T19:35:10Z		drives stone-1
+power-2	done		2026-10-15T19:35:37Z		126k, no fault found
+military-1	done		2026-10-15T19:40:38Z		153k
+military-2	worker	sonnet/medium	2026-10-15T19:40:38Z		drives power-1
+runner-2	worker	sonnet/medium	2026-10-15T19:40:38Z		drives coal-1
+gamma-4	done		2026-10-15T19:42:15Z		112k
+utility-2	done		2026-10-15T19:51:33Z		189k
+utility-3	worker	sonnet/medium	2026-10-15T19:51:33Z		drives copper-1
+military-2	done		2026-10-15T19:59:51Z		194k
+brick-1	worker	sonnet/medium	2026-10-15T19:59:51Z		drives power-1
+runner-2	done		2026-10-15T20:09:12Z		140k
+delta-3	done		2026-10-15T20:14:14Z		204k
+utility-3	done		2026-10-15T20:15:05Z		171k
+delta-4	worker	sonnet/medium	2026-10-15T20:15:16Z		drives iron-1
+runner-3	worker	sonnet/low	2026-10-15T20:15:16Z		drives copper-1
+brick-1	done		2026-10-15T20:20:11Z		121k
+blue-6	worker	sonnet/medium	2026-10-15T20:20:18Z		drives power-1
+delta-4	done		2026-10-15T20:33:48Z		117k DELTA READY
+kit-3	worker	sonnet/medium	2026-10-15T20:33:48Z		drives iron-1
+blue-6	done		2026-10-15T20:58:10Z		163k
+purple-5	worker	sonnet/medium	2026-10-15T20:58:30Z		drives power-1
+iron-6	worker	sonnet/medium	2026-10-15T20:58:30Z		drives stone-1
+runner-3	done		2026-10-15T21:13:49Z		106k
+utility-4	worker	sonnet/medium	2026-10-15T21:13:49Z		drives copper-1
+utility-4	done		2026-10-15T21:20:21Z		125k
+purple-5	done		2026-10-15T21:24:29Z		152k
+runner-4	worker	sonnet/low	2026-10-15T21:24:29Z		drives coal-1
+kit-3	done		2026-10-15T21:28:39Z		174k, Vulcanus silo placed
+met-run-1	worker	sonnet/medium	2026-10-15T21:28:39Z		drives iron-1
+vulcan-sci-3	worker	sonnet/medium	2026-10-15T21:28:39Z		drives iron-2
+iron-6	done		2026-10-15T21:34:21Z		212k
+copper-6	worker	sonnet/medium	2026-10-15T21:34:21Z		drives stone-1
+copper-6	done		2026-10-15T21:54:21Z		150k
+fulgora-kit	worker	sonnet/medium	2026-10-15T21:54:45Z		drives power-1
+runner-4	done		2026-10-15T22:05:56Z		98k
+met-run-1	done		2026-10-15T22:15:49Z		157k, 185 met delivered
+delta-fix	worker	sonnet/medium	2026-10-15T22:15:50Z		drives iron-1
+ammo-1	worker	sonnet/medium	2026-10-15T22:16:02Z		drives coal-1
+vulcan-sci-3	done		2026-10-15T22:30:23Z		212k, 350 met at silo
+vulcan-sci-4	worker	sonnet/medium	2026-10-15T22:30:23Z		drives iron-2
+ammo-1	done		2026-10-15T22:38:37Z		161k
+fulgora-kit	done		2026-10-15T22:45:55Z		200k kit staged
+fulgora-kit-2	worker	sonnet/medium	2026-10-15T22:46:17Z		drives power-1
+delta-fix	done		2026-10-15T23:10:56Z		169k DELTA READY 2
+fulgora-kit-2	done		2026-10-15T23:28:14Z		179k
+fulgora-1	worker	sonnet/medium	2026-10-15T23:28:14Z		drives power-1
+pilot-1	worker	sonnet/medium	2026-10-15T23:28:14Z		drives iron-1
+pilot-1	done		2026-10-15T23:36:28Z		104k delta at Fulgora
+labs-1	worker	sonnet/medium	2026-10-15T23:36:46Z		drives stone-1
+fulgora-1	done		2026-10-15T23:51:40Z		152k no vault yet
+fulgora-2	worker	sonnet/medium	2026-10-15T23:51:40Z		drives power-1
+labs-1	done		2026-10-15T23:57:15Z		195k labs chained
+epsilon-1	worker	sonnet/medium	2026-10-15T23:58:33Z		drives stone-1
+vulcan-sci-4	done		2026-10-16T00:07:05Z		212k, 386 met at silo
+vulcan-sci-5	worker	sonnet/medium	2026-10-16T00:07:13Z		drives iron-2
+fulgora-2	done		2026-10-16T00:28:37Z		188k vault found, unreachable
+fulgora-3	worker	sonnet/medium	2026-10-16T00:28:37Z		drives power-1
+epsilon-1	done		2026-10-16T00:43:28Z		216k
+epsilon-2	worker	sonnet/medium	2026-10-16T00:43:29Z		drives stone-1
+epsilon-2	done		2026-10-16T00:53:44Z		116k EPSILON READY
+shuttle-1	worker	sonnet/medium	2026-10-16T00:53:45Z		drives stone-1
+fulgora-3	done		2026-10-16T01:05:00Z		203k recycling+holmium+EM plant
+fulgora-4	worker	sonnet/medium	2026-10-16T01:05:00Z		drives power-1
+shuttle-1	done		2026-10-16T01:23:18Z		123k 501 met delivered
+sci-fix	worker	sonnet/medium	2026-10-16T01:23:53Z		drives stone-1
+sci-fix	done		2026-10-16T01:41:23Z		180k blue+purple back
+ore-1	worker	sonnet/medium	2026-10-16T01:41:23Z		drives coal-1
+ore-2	worker	sonnet/medium	2026-10-16T01:41:23Z		drives copper-1
+ore-1	done		2026-10-16T01:47:04Z		116k no build needed
+fulgora-4	done		2026-10-16T01:57:17Z		212k oil site, EM plant unpiped
+fulgora-5	worker	sonnet/medium	2026-10-16T01:57:18Z		drives power-1
+ore-2	done		2026-10-16T02:03:07Z		149k pad fixed, copper ok
+gleba-kit	worker	sonnet/medium	2026-10-16T02:03:07Z		drives copper-1
+vulcan-sci-5	done		2026-10-16T02:07:51Z		168k +333 met
+vulc-supply	worker	sonnet/medium	2026-10-16T02:07:51Z		drives coal-1
+fulgora-5	done		2026-10-16T02:32:48Z		177k EM triggered, ~50 EM packs
+fulgora-6	worker	sonnet/medium	2026-10-16T02:32:48Z		drives power-1
+vulc-supply	done		2026-10-16T02:33:45Z		157k kit staged
+shuttle-2	worker	sonnet/medium	2026-10-16T02:33:46Z		drives stone-1
+auto-1	worker	sonnet/medium	2026-10-16T02:34:02Z		drives coal-1
+vulc-scale	worker	sonnet/medium	2026-10-16T02:51:01Z		drives iron-2
+auto-2	worker	sonnet/medium	2026-10-16T02:53:09Z		drives coal-1
+auto-3	worker	sonnet/medium	2026-10-16T02:53:09Z		drives stone-1
+auto-4	worker	sonnet/medium	2026-10-16T03:02:51Z		drives stone-1
+gamma-5	worker	sonnet/medium	2026-10-16T03:10:15Z		drives coal-1
+iron-push	worker	sonnet/medium	2026-10-16T03:12:32Z		drives stone-1
+fulgora-7	worker	sonnet/medium	2026-10-16T03:22:30Z		drives power-1
+fulgora-8	worker	sonnet/medium	2026-10-16T03:40:34Z		drives power-1
+fulg-sort	worker	sonnet/medium	2026-10-16T03:40:34Z		drives iron-1
+vulc-scale-2	worker	sonnet/medium	2026-10-16T03:41:42Z		drives iron-2
+gamma-6	worker	sonnet/medium	2026-10-16T03:59:24Z		drives coal-1
+fulgora-9	worker	sonnet/medium	2026-10-16T04:05:26Z		drives power-1
+gleba-go	worker	sonnet/medium	2026-10-16T04:05:51Z		drives copper-1
+vulc-scale-3	worker	sonnet/medium	2026-10-16T04:27:29Z		drives iron-2
+fulgora-10	worker	sonnet/medium	2026-10-16T04:35:20Z		drives power-1
+gamma-7	worker	sonnet/medium	2026-10-16T04:37:11Z		drives coal-1
+zeta-1	worker	sonnet/medium	2026-10-16T04:40:19Z		drives stone-1
+vulc-kit2	worker	sonnet/medium	2026-10-16T04:40:19Z		drives iron-1
+fulgora-11	worker	sonnet/medium	2026-10-16T04:53:16Z		drives power-1
+gleba-2	worker	sonnet/medium	2026-10-16T04:57:27Z		drives copper-1
+fulgora-12	worker	sonnet/medium	2026-10-16T05:19:38Z		drives power-1
+mil-2	worker	sonnet/medium	2026-10-16T05:25:11Z		drives coal-1
+vulc-run-1	runner	sonnet/low	2026-10-16T05:25:11Z		drives iron-2
+purple-scale	worker	sonnet/medium	2026-10-16T05:31:12Z		drives iron-3 (new)
+util-scale	worker	sonnet/medium	2026-10-16T05:31:12Z		drives copper-2 (new)
+iron-scale	worker	sonnet/medium	2026-10-16T05:31:12Z		drives stone-2 (new)
+vulc-run-2	runner	sonnet/low	2026-10-16T05:31:37Z		drives iron-2
+purple-steel	worker	sonnet/medium	2026-10-16T05:34:22Z		drives iron-3
+brick-2	worker	sonnet/medium	2026-10-16T05:35:27Z		drives coal-1
+gleba-3	worker	sonnet/medium	2026-10-16T05:36:38Z		drives copper-1
+zeta-2	worker	sonnet/medium	2026-10-16T05:37:41Z		drives stone-1
+fulgora-13	worker	sonnet/medium	2026-10-16T05:40:42Z		drives power-1
+util-2	worker	sonnet/medium	2026-10-16T06:01:33Z		drives copper-2
+pu-scale	worker	sonnet/medium	2026-10-16T06:01:33Z		drives coal-1
+buffer-1	worker	sonnet/medium	2026-10-16T06:07:34Z		drives coal-1
+plate-link	worker	sonnet/medium	2026-10-16T06:12:23Z		drives stone-2
+purple-steel-2	worker	sonnet/medium	2026-10-16T06:12:23Z		drives iron-3
+util-3	worker	sonnet/medium	2026-10-16T06:30:10Z		drives copper-2
+purple-feed	worker	sonnet/medium	2026-10-16T06:31:07Z		drives iron-3
+green-fix	worker	sonnet/medium	2026-10-16T06:32:21Z		drives coal-1
+iron-col2	worker	sonnet/medium	2026-10-16T06:34:35Z		drives stone-2
+zeta-3	worker	sonnet/medium	2026-10-16T06:39:03Z		drives stone-1
+gleba-4	worker	sonnet/medium	2026-10-16T06:56:01Z		drives copper-1
+iron-east	worker	sonnet/medium	2026-10-16T07:00:28Z		drives coal-1
+zeta-4	worker	sonnet/medium	2026-10-16T07:06:22Z		drives stone-1
+gleba-ship	worker	sonnet/medium	2026-10-16T07:33:18Z		drives stone-1
+gleba-5	worker	sonnet/medium	2026-10-16T07:33:18Z		drives copper-1
+iron-audit	worker	sonnet/medium	2026-10-16T07:52:19Z		drives stone-2
+oil-3	worker	sonnet/medium	2026-10-16T07:58:31Z		drives stone-2
+gleba-arms	worker	sonnet/medium	2026-10-16T08:03:35Z		drives copper-1
+gleba-prep	worker	sonnet/medium	2026-10-16T08:07:44Z		drives stone-1
+vulc-scale-4	worker	sonnet/medium	2026-10-16T08:11:20Z		drives iron-2
+vulc-scale-5	worker	sonnet/medium	2026-10-16T08:42:19Z		drives iron-2
+refine-2	worker	sonnet/medium	2026-10-16T08:50:44Z		drives stone-2
+purple-2	worker	sonnet/medium	2026-10-16T08:50:44Z		drives iron-3
+fulgora-14	worker	sonnet/medium	2026-10-16T08:52:16Z		drives power-1
+ship-eta	worker	sonnet/medium	2026-10-16T08:52:16Z		drives coal-1
+egg-hunt-1	worker	sonnet/medium	2026-10-16T09:02:22Z		drives copper-1
+gleba-farm	worker	sonnet/medium	2026-10-16T09:02:22Z		drives stone-1
+purple-3	worker	sonnet/medium	2026-10-16T09:15:16Z		drives iron-3
+eta-2	worker	sonnet/medium	2026-10-16T09:23:28Z		drives coal-1
+refine-3	worker	sonnet/medium	2026-10-16T09:29:28Z		drives stone-2
+adv-circ	worker	sonnet/medium	2026-10-16T09:39:53Z		drives copper-2
+purple-4	worker	sonnet/medium	2026-10-16T09:39:53Z		drives iron-3
+agri-ship	worker	sonnet/medium	2026-10-16T09:45:36Z		drives copper-1
+pad-labs	worker	sonnet/medium	2026-10-16T09:45:36Z		drives iron-1
+vulc-scale-6	worker	sonnet/medium	2026-10-16T09:46:50Z		drives iron-2
+adv-circ-2	worker	sonnet/medium	2026-10-16T09:49:15Z		drives copper-2
+fulgora-15	worker	sonnet/medium	2026-10-16T09:50:56Z		drives power-1
+util-4	worker	sonnet/medium	2026-10-16T09:54:08Z		drives iron-3
+blue-scale	worker	sonnet/medium	2026-10-16T09:54:08Z		drives iron-1
+oil-4	worker	sonnet/medium	2026-10-16T09:57:52Z		drives stone-2
+vulc-scale-7	worker	sonnet/medium	2026-10-16T09:58:46Z		drives iron-2
+gleba-scale	worker	sonnet/medium	2026-10-16T10:04:04Z		drives copper-1
+fulgora-16	worker	sonnet/medium	2026-10-16T10:07:42Z		drives power-1
+copper-scale	worker	sonnet/medium	2026-10-16T10:12:22Z		drives stone-2
+util-5	worker	sonnet/medium	2026-10-16T10:17:42Z		drives iron-3
+eta-3	worker	sonnet/medium	2026-10-16T10:21:43Z		drives coal-1
+gleba-fix	worker	sonnet/medium	2026-10-16T10:21:43Z		drives stone-1
+gas-link	worker	sonnet/medium	2026-10-16T10:21:43Z		drives iron-1
+vulc-scale-8	worker	sonnet/medium	2026-10-16T10:24:35Z		drives iron-2
+adv-circ-3	worker	sonnet/medium	2026-10-16T10:24:35Z		drives copper-2
+iron-ore-3	worker	sonnet/medium	2026-10-16T10:29:57Z		drives stone-2
+plastic-2	worker	sonnet/medium	2026-10-16T10:31:20Z		drives iron-1
+fulgora-17	worker	sonnet/medium	2026-10-16T10:32:00Z		drives power-1
+refine-4	worker	sonnet/medium	2026-10-16T10:40:09Z		drives iron-3
+gleba-farm-2	worker	sonnet/medium	2026-10-16T10:42:49Z		drives copper-1
+adv-circ-4	worker	sonnet/medium	2026-10-16T10:43:05Z		drives copper-2
+copper-ore	worker	sonnet/medium	2026-10-16T10:44:42Z		drives stone-2
+courier-1	worker	sonnet/medium	2026-10-16T10:46:26Z		drives stone-1
+eta-4	worker	sonnet/medium	2026-10-16T10:47:47Z		drives coal-1
+vulc-scale-9	worker	sonnet/medium	2026-10-16T10:48:21Z		drives iron-2
+coal-plastic	worker	sonnet/medium	2026-10-16T10:48:48Z		drives iron-3
+coal-2	worker	sonnet/medium	2026-10-16T10:49:18Z		drives iron-1
+fulgora-18	worker	sonnet/medium	2026-10-16T10:52:43Z		drives power-1
+copper-row	worker	sonnet/medium	2026-10-16T10:55:25Z		drives copper-2
+scout-1	runner	sonnet/low	2026-10-16T11:11:53Z		drives iron-1
+copper-route	worker	sonnet/medium	2026-10-16T11:14:07Z		drives stone-2
+fulgora-19	worker	sonnet/medium	2026-10-16T11:23:03Z		drives power-1
+gleba-fix-2	worker	sonnet/medium	2026-10-16T11:27:31Z		drives stone-1
+cable-fuel	worker	sonnet/medium	2026-10-16T11:28:31Z		drives iron-3
+eta-5	worker	sonnet/medium	2026-10-16T11:30:53Z		drives coal-1
+fulgora-20	worker	sonnet/medium	2026-10-16T11:40:36Z		drives power-1
+courier-2	worker	sonnet/medium	2026-10-16T11:42:21Z		drives stone-1
+gleba-farm-3	worker	sonnet/medium	2026-10-16T11:44:46Z		drives copper-1
+copper-ore-2	worker	sonnet/medium	2026-10-16T11:45:46Z		drives stone-2
+adv-runner	runner	sonnet/low	2026-10-16T11:45:46Z		drives copper-2
+coal-3	worker	sonnet/medium	2026-10-16T11:49:46Z		drives iron-3
+copper-ore-3	worker	sonnet/medium	2026-10-16T11:59:47Z		drives stone-2
+battery-1	worker	sonnet/medium	2026-10-16T12:00:15Z		drives iron-1
+fulgora-21	worker	sonnet/medium	2026-10-16T12:04:18Z		drives power-1
+eta-6	worker	sonnet/medium	2026-10-16T12:22:41Z		drives coal-1
+battery-2	worker	sonnet/medium	2026-10-16T12:26:31Z		drives iron-1
+oil-5	worker	sonnet/medium	2026-10-16T12:27:40Z		drives iron-3
+fulgora-22	worker	sonnet/medium	2026-10-16T12:33:49Z		drives power-1
+liquefy-1	worker	sonnet/medium	2026-10-16T12:43:58Z		drives iron-3
+egg-hunt-2	worker	sonnet/medium	2026-10-16T12:43:58Z		drives stone-1
+liquefy-2	worker	sonnet/medium	2026-10-16T12:53:54Z		drives iron-3
+copper-branch	worker	sonnet/medium	2026-10-16T13:04:20Z		drives stone-2
+fulgora-23	worker	sonnet/medium	2026-10-16T13:05:31Z		drives power-1
+fulgora-courier	worker	sonnet/medium	2026-10-16T13:06:15Z		drives coal-1
+liquefy-3	worker	sonnet/medium	2026-10-16T13:14:12Z		drives iron-3
+purple-fix	worker	sonnet/medium	2026-10-16T13:30:56Z		drives stone-2
+util-fix	worker	sonnet/medium	2026-10-16T13:30:56Z		drives copper-1
+fulgora-bridge	worker	sonnet/medium	2026-10-16T13:34:50Z		drives coal-1
+util-fix-2	worker	sonnet/medium	2026-10-16T13:35:11Z		drives iron-1
+bridge-2	worker	sonnet/medium	2026-10-16T13:41:25Z		drives stone-2
+em-link	worker	sonnet/medium	2026-10-16T13:43:42Z		drives coal-1
+steel-1	worker	sonnet/medium	2026-10-16T13:57:06Z		drives iron-3
+fulgora-24	worker	sonnet/medium	2026-10-16T13:57:06Z		drives power-1
+gleba-farm-4	worker	sonnet/medium	2026-10-16T13:57:06Z		drives copper-1
+vulc-check	worker	sonnet/medium	2026-10-16T13:57:06Z		drives iron-2
+battery-3	worker	sonnet/medium	2026-10-16T13:58:09Z		drives iron-1
+iron-ore-4	worker	sonnet/medium	2026-10-16T14:00:24Z		drives iron-3
+adv-route	worker	sonnet/medium	2026-10-16T14:04:43Z		drives copper-2
+adv-route-2	worker	sonnet/medium	2026-10-16T14:13:24Z		drives copper-2
+fulgora-ops	runner	sonnet/low	2026-10-16T14:15:45Z		drives power-1
+lab-feed	worker	sonnet/medium	2026-10-16T14:31:22Z		drives copper-2
+em-move	worker	sonnet	2026-10-16T14:37:12Z		drives stone-2
+freighter-1	worker	sonnet	2026-10-16T14:37:12Z		drives iron-3
+holmium-1	worker	sonnet/medium	2026-10-16T14:37:24Z		drives power-1
+freighter-2	worker	sonnet/high	2026-10-16T17:48:51Z		drives iron-3
+lab-feed-2	worker	sonnet/medium	2026-10-16T17:48:51Z		drives copper-2
+holmium-2	worker	sonnet/medium	2026-10-16T17:48:51Z		drives power-1
+util-feed	worker	sonnet/medium	2026-10-16T17:48:51Z		drives iron-1
+ammo-1	worker	sonnet/medium	2026-10-16T17:48:51Z		drives stone-1
+purple-auto	worker	sonnet/medium	2026-10-16T18:13:48Z		drives copper-2
+freighter-3	worker	sonnet/high	2026-10-16T18:18:40Z		drives iron-3
+fulgora-sink	worker	sonnet/medium	2026-10-16T18:25:07Z		drives coal-1
+egg-kit	worker	sonnet/medium	2026-10-16T18:45:30Z		drives stone-1
+freighter-4	worker	sonnet/high	2026-10-16T19:05:54Z		drives iron-3
+em-ship	worker	sonnet/medium	2026-10-16T19:57:00Z		drives stone-2
+egg-hunt-3	worker	sonnet/high	2026-10-16T20:06:16Z		drives stone-1
+gleba-prep	worker	sonnet/medium	2026-10-16T20:06:16Z		drives copper-1
+gleba-plan	worker	sonnet/high	2026-10-16T20:42:32Z		drives copper-1
+freighter-5	worker	sonnet/high	2026-10-16T21:12:28Z		drives iron-3
+gleba-cargo	worker	sonnet/medium	2026-10-16T21:12:28Z		drives copper-2
+freighter-6	worker	sonnet/high	2026-10-16T21:24:27Z		drives iron-3

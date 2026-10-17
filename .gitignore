@@ -12,3 +12,10 @@ __pycache__/
 out/
 dist/
 dist/
+# agent scratch files dropped in the repo root during runs
+/*.json
+/*.txt
+/*.log
+/gen_cell.py
+/renders/
+/tmp/
