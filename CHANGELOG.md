@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased] - 2026-11-14
 
 ### Added
+- `state/directives.md`: human/supervisor tasks the runner prepends to every board the coach writes (the coach sees them as input but cannot drop them).
 - `production_stats` accepts `window="5m"` (mapped to 10m); tool-call arguments with trailing text keep the first JSON object instead of failing (62 failed calls in one day).
 - Coach input lists the researched techs (KPI `researched`), so its research queue skips finished ones; worker prompt lists valid `run_plan` step types and the `job_wait` argument.
 - Coach input has a 30-minute trend line (research, packs produced, buildings, problems) so stalls are visible; a prompt rule makes unblocking the labs the first priority.

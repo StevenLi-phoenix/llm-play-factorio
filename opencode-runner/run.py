@@ -27,6 +27,7 @@ log = logging.getLogger("runner")
 
 # Pacing and cadence tunables (seconds unless noted).
 COACH_STATUS_CHARS, COACH_NOTES_CHARS, COACH_BOARD_CHARS, BOARD_WRITE_CHARS = 200, 1200, 2500, 3500  # coach prompt/board slice limits
+DIRECTIVES_CHARS = 3000         # max size of state/directives.md (human-set tasks prepended to every board)
 COACH_MAX_TOKENS = 4000         # 12 of 23 coach replies hit 2500 (all reasoning, no board text) on 2026-11-14
 KPI_EVERY = 60                 # RCON KPI sample + game-speed enforcement
 QUOTA_EVERY = 120               # gateway quota poll
@@ -82,6 +83,23 @@ def iso(ts: float) -> str:
 
 def parse_iso(s: str) -> float:
     return datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()
+
+
+def read_directives(root: Path, limit: int = DIRECTIVES_CHARS) -> str:
+    """Tasks the human/supervisor fixed in `directives.md`; the coach cannot drop them when it rewrites the board."""
+    f = root / "directives.md"
+    try:
+        return f.read_text(encoding="utf-8").strip()[:limit] if f.exists() else ""
+    except OSError as e:
+        log.warning("directives: cannot read %s: %s", f, e)
+        return ""
+
+
+def compose_board(stamp: str, directives: str, body: str) -> str:
+    head = f"[board updated {stamp}]\n"
+    if directives:
+        head += f"SUPERVISOR DIRECTIVES (set by the human/supervisor: do these before anything else):\n{directives}\n\n"
+    return f"{head}{body}\n"
 
 
 class Supervisor:
@@ -292,12 +310,15 @@ class Supervisor:
             lines.append("status: " + (sf.read_text()[:COACH_STATUS_CHARS] if sf.exists() else "(none)"))
             lines.append("notes: " + (nf.read_text()[:COACH_NOTES_CHARS] if nf.exists() else "(none)"))
         prev = (self.root / "board.md")
+        directives = read_directives(self.root)
+        if directives:
+            lines.append("--- SUPERVISOR DIRECTIVES (already prepended to the board by the runner; do not repeat them, plan around them):\n" + directives)
         lines.append("--- previous board:\n" + (prev.read_text()[:COACH_BOARD_CHARS] if prev.exists() else "(none)"))
         r = await self.gw.chat(agent="coach", model=self.coach_model, session="coach", tools=None, max_tokens=COACH_MAX_TOKENS,
                                messages=[{"role": "system", "content": COACH_SYSTEM}, {"role": "user", "content": "\n".join(lines)}])
         text = (r["choices"][0]["message"].get("content") or "").strip()
         if text:
-            prev.write_text(f"[board updated {iso(now())}]\n{text[:BOARD_WRITE_CHARS]}\n", encoding="utf-8")
+            prev.write_text(compose_board(iso(now()), directives, text[:BOARD_WRITE_CHARS]), encoding="utf-8")
             log.info("coach wrote board (%d chars)", len(text))
 
     async def report_loop(self) -> None:
