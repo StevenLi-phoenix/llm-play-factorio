@@ -95,10 +95,15 @@ def read_directives(root: Path, limit: int = DIRECTIVES_CHARS) -> str:
         return ""
 
 
+def directives_block(directives: str) -> str:
+    """The block compose_board puts on top of the board; board_body cuts the very same text out again."""
+    return f"SUPERVISOR DIRECTIVES (set by the human/supervisor: do these before anything else):\n{directives}\n\n"
+
+
 def compose_board(stamp: str, directives: str, body: str) -> str:
     head = f"[board updated {stamp}]\n"
     if directives:
-        head += f"SUPERVISOR DIRECTIVES (set by the human/supervisor: do these before anything else):\n{directives}\n\n"
+        head += directives_block(directives)
     return f"{head}{body}\n"
 
 
@@ -107,8 +112,7 @@ def board_body(board: str, directives: str) -> str:
     the coach's slice of the previous board (directives ~2.6k chars vs a 2.5k slice) and is shown twice."""
     if not directives:
         return board
-    head = f"SUPERVISOR DIRECTIVES (set by the human/supervisor: do these before anything else):\n{directives}\n\n"
-    return board.replace(head, "", 1)
+    return board.replace(directives_block(directives), "", 1)
 
 
 class Supervisor:
