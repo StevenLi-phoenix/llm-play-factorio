@@ -10,6 +10,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - `scripts/pick_seed.py` re-rolls map seeds until spawn resources are healthy.
 - Prompt hints: research prerequisites, `can_place` before `build_plan`, drill fuel logistics, powered labs, flat `run_plan` step examples.
 
+### Fixed
+- Runner fails fast at startup when a prompt template has stray braces (`check_templates`, test in `opencode-runner/tests`).
+
 ### Changed
 - opencode-runner: pacing/cadence magic numbers are named constants; `Agent` exposes `paused`/`pause`/`resume`/`summary_row` instead of the supervisor reading its internals.
 - Mod and docker config target Factorio 2.1 (fluidbox, underground neighbours, array categories, `crafter_input`).

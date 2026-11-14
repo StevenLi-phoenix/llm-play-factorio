@@ -20,7 +20,7 @@ from factorio_mcp.rcon import RconClient
 
 from agent import HIGH_TOKENS, Agent, RunCfg
 from llm import Gateway, GatewayFatal
-from prompts import COACH_SYSTEM
+from prompts import COACH_SYSTEM, check_templates
 
 log = logging.getLogger("runner")
 
@@ -310,6 +310,7 @@ def main() -> None:
                                                                   logging.FileHandler(root / "logs" / "runner.log")])
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("factorio_mcp").setLevel(logging.WARNING)
+    check_templates()
     asyncio.run(Supervisor().main())
 
 

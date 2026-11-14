@@ -91,3 +91,9 @@ the BOARD the workers read: <= 450 words, plain text, this shape:
   full: name the next techs to queue.
   WARNINGS: concrete bugs/starvation seen in the KPIs or statuses (what, where) and who fixes it.
 Be specific with coordinates taken from the statuses/notes. Do not invent coordinates. Reply with the board text only."""
+
+
+def check_templates() -> None:
+    """Fail fast at startup if a str.format template has stray braces (a bad edit once crash-looped every worker)."""
+    WORKER_SYSTEM.format(character="w1")
+    START_MSG.format(character="w1", notes="", summary="", board="")
