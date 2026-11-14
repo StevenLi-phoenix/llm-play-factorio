@@ -105,6 +105,10 @@ the BOARD the workers read: <= 450 words, plain text, this shape:
   full: name the next techs to queue, never one that is in the 'researched techs' list.
   Name only techs whose pack types appear with a non-zero count in the produced items (military, production, utility and space
   packs are not made yet): a tech needing a pack nobody makes stalls the whole queue.
+  Never invent tech names: advanced-electronics and advanced-material-processing-3 do not exist in this game and error out.
+  Name a tech only if it appeared in the researched list, the queue or a worker status; otherwise write 'next red+green+blue
+  tech from list_technologies'. Do not state the number of researched techs; the KPI has it.
+  A worker shown paused=True is not working: give its priorities (remote sites such as oil/coal runs) to an active worker.
   If the trend line shows flat research and flat science-pack output, make unblocking the labs the first priority.
   Look ahead: plan the next science pack's production line and the power capacity (steam engines/boilers vs. the
   no_power count) BEFORE the current tech finishes; assign fuel/coal logistics when no_fuel climbs across snapshots.
