@@ -24,6 +24,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
 ### Fixed
+- The coach's view of the previous board no longer starts with the 2.6k-char directives block (it filled the 2.5k slice, hiding the board text and duplicating the directives section): `board_body` cuts it out.
 - Coach prompt: no invented tech names (`advanced-electronics`, `advanced-material-processing-3` do not exist), no hand-written researched-tech count, and a paused worker's priorities go to an active worker.
 - `cancel_research` can remove a research head that is still under 1% (a head waiting for a pack nobody makes used to block the whole queue and could not be cancelled). Mod and tool text updated; takes effect with the next `factorio.service` restart.
 - Prompts tell workers and the coach to research only techs whose science packs are produced: military-3 (needs military packs nobody makes) sat at 0% for 40+ game minutes and blocked the queue.

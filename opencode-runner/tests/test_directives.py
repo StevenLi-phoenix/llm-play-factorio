@@ -25,3 +25,9 @@ def test_compose_board_puts_directives_first():
 
 def test_compose_board_without_directives_is_the_old_format():
     assert run.compose_board("T", "", "PHASE: x") == "[board updated T]\nPHASE: x\n"
+
+
+def test_board_body_cuts_the_prepended_directives():
+    board = run.compose_board("T", "1. fuel the boilers", "PHASE: x")
+    assert run.board_body(board, "1. fuel the boilers") == "[board updated T]\nPHASE: x\n"
+    assert run.board_body(board, "") == board

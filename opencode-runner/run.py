@@ -29,7 +29,7 @@ log = logging.getLogger("runner")
 COACH_STATUS_CHARS, COACH_NOTES_CHARS, COACH_BOARD_CHARS, BOARD_WRITE_CHARS = 200, 1200, 2500, 3500  # coach prompt/board slice limits
 DIRECTIVES_CHARS = 3000         # max size of state/directives.md (human-set tasks prepended to every board)
 COACH_MAX_TOKENS = 4000         # 12 of 23 coach replies hit 2500 (all reasoning, no board text) on 2026-11-14
-KPI_EVERY = 60                 # RCON KPI sample + game-speed enforcement
+KPI_EVERY = 60                  # RCON KPI sample + game-speed enforcement
 QUOTA_EVERY = 120               # gateway quota poll
 REPORT_EVERY = 30               # runner.json rewrite
 HISTORY_EVERY = 60              # history.jsonl row for the dashboard charts
@@ -100,6 +100,15 @@ def compose_board(stamp: str, directives: str, body: str) -> str:
     if directives:
         head += f"SUPERVISOR DIRECTIVES (set by the human/supervisor: do these before anything else):\n{directives}\n\n"
     return f"{head}{body}\n"
+
+
+def board_body(board: str, directives: str) -> str:
+    """The coach's own text of a board: the directives block the runner prepended is cut out, otherwise it fills
+    the coach's slice of the previous board (directives ~2.6k chars vs a 2.5k slice) and is shown twice."""
+    if not directives:
+        return board
+    head = f"SUPERVISOR DIRECTIVES (set by the human/supervisor: do these before anything else):\n{directives}\n\n"
+    return board.replace(head, "", 1)
 
 
 class Supervisor:
@@ -313,7 +322,7 @@ class Supervisor:
         directives = read_directives(self.root)
         if directives:
             lines.append("--- SUPERVISOR DIRECTIVES (already prepended to the board by the runner; do not repeat them, plan around them):\n" + directives)
-        lines.append("--- previous board:\n" + (prev.read_text()[:COACH_BOARD_CHARS] if prev.exists() else "(none)"))
+        lines.append("--- previous board:\n" + (board_body(prev.read_text(encoding="utf-8"), directives)[:COACH_BOARD_CHARS] if prev.exists() else "(none)"))
         r = await self.gw.chat(agent="coach", model=self.coach_model, session="coach", tools=None, max_tokens=COACH_MAX_TOKENS,
                                messages=[{"role": "system", "content": COACH_SYSTEM}, {"role": "user", "content": "\n".join(lines)}])
         text = (r["choices"][0]["message"].get("content") or "").strip()
