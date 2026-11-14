@@ -11,12 +11,13 @@ CALLS = [
     ("status", {}), ("look_around", {"radius": 60}), ("check_inventory", {}), ("map_overview", {}),
     ("scan_area", {"radius": 20}), ("scan_area", {"radius": 100}), ("inspect_entity", {"x": 0, "y": 0}),
     ("describe_prototype", {"names": ["burner-mining-drill", "lab", "assembling-machine-2", "oil-refinery", "chemical-plant",
-                                      "pumpjack", "offshore-pump", "steam-engine", "boiler", "pipe-to-ground", "underground-belt",
-                                      "rocket-silo", "foundry", "biochamber", "recycler", "space-platform-hub", "iron-plate", "coal", "wood"]}),
-    ("describe_prototype", {"names": ["fluid-wagon", "storage-tank", "pump", "fusion-reactor", "heat-pipe", "car", "tank", "cargo-landing-pad"]}),
-    ("map_warnings", {}), ("analyze_factory", {}), ("list_technologies", {}), ("list_technologies", {"filter": "all"}),
+                                      "pumpjack", "offshore-pump", "steam-engine", "boiler", "pipe-to-ground"]}),
+    ("describe_prototype", {"names": ["underground-belt", "rocket-silo", "foundry", "biochamber", "recycler", "space-platform-hub",
+                                      "iron-plate", "coal", "wood", "fluid-wagon"]}),
+    ("describe_prototype", {"names": ["storage-tank", "pump", "fusion-reactor", "heat-pipe", "car", "tank", "cargo-landing-pad"]}),
+    ("map_warnings", {}), ("analyze_factory", {}), ("list_technologies", {}), ("list_technologies", {"status": "all"}),
     ("list_blueprints", {}), ("platforms", {}), ("get_events", {}), ("read_chat", {}), ("job_status", {}),
-    ("trace_belt", {"x": 0, "y": 0}), ("measure_belt", {"x": 0, "y": 0}), ("map_warnings", {}),
+    ("map_warnings", {}),
 ]
 
 

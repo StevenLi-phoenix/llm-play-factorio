@@ -1,0 +1,16 @@
+[Unit]
+Description=opencode-go LLM agents playing Factorio (supervisor)
+After=factorio.service
+Requires=factorio.service
+
+[Service]
+Environment=WORKER_MODELS=deepseek-v4.1-flash,minimax-m3,glm-5.3-flash
+Environment=COACH_MODEL=deepseek-v4-pro
+Environment=GAME_SPEED=2
+ExecStart=%h/factorio-agent/repo/opencode-runner/runner.sh
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

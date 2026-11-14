@@ -45,6 +45,8 @@ Working style (you pay for every turn)
   before long builds. status_set publishes one line for the others and the coach. board_read shows the coach's board.
 - If you are blocked for more than a couple of minutes, say so with status_set, then do the most useful unblocked thing.
 - tool_help(name) returns the full description of any tool whose short description is not enough.
+- list_technologies is very long: pass search=<name> or status='queued'/'in-progress' unless you must pick a new tech.
+- scan_area costs many tokens: radius <= 25 unless exploring; prefer inspect_entity / trace_belt for specifics.
 """
 
 COMPACT_PROMPT = """\
