@@ -18,11 +18,25 @@ from pathlib import Path
 
 from factorio_mcp.rcon import RconClient
 
-from agent import Agent, RunCfg
-from llm import Gateway, GatewayBadRequest, GatewayFatal
+from agent import HIGH_TOKENS, Agent, RunCfg
+from llm import Gateway, GatewayFatal
 from prompts import COACH_SYSTEM
 
 log = logging.getLogger("runner")
+
+# Pacing and cadence tunables (seconds unless noted).
+KPI_EVERY = 60                  # RCON KPI sample + game-speed enforcement
+QUOTA_EVERY = 120               # gateway quota poll
+REPORT_EVERY = 30               # runner.json rewrite
+HISTORY_EVERY = 60              # history.jsonl row for the dashboard charts
+BURN_EVERY = 15 * 60            # burn-control evaluation interval
+BURN_MIN_HOURS = 0.75           # minimum sample span before burn control acts
+SAMPLE_WINDOW = 6 * 3600        # quota samples kept for the burn-rate estimate
+ROLLING_HOT, ROLLING_RESUME, WEEKLY_HOT = 92, 70, 98   # percent thresholds that pause / resume all agents
+BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.6      # projected/remaining ratios that pause / resume one agent
+AGENT_STAGGER = 15              # start workers this many seconds apart
+COACH_FIRST_WAIT = 20 * 60      # first coach run no later than this
+STOP_GRACE = 30                 # seconds agents get to finish after stop
 
 KPI_LUA = r"""
 local f = game.forces.player
@@ -74,7 +88,7 @@ class Supervisor:
         self.gw = Gateway(e.get("LLMGW_BASE", "https://api.lishuyu.app/llm"), e["LLMGW_API_KEY"], self.root / "raw")
         models = [m.strip() for m in e.get("WORKER_MODELS", "deepseek-v4.1-flash").split(",") if m.strip()]
         cfg = RunCfg(root=self.root, rcon_host=self.rcon["host"], rcon_port=self.rcon["port"], rcon_password=self.rcon["pw"],
-                     high_tokens=int(e.get("HIGH_TOKENS", "42000")))
+                     high_tokens=int(e.get("HIGH_TOKENS", str(HIGH_TOKENS))))
         self.agents = [Agent(f"w{i+1}", f"w{i+1}", m, cfg, self.gw) for i, m in enumerate(models)]
         self.coach_model = e.get("COACH_MODEL", "deepseek-v4-pro")
         self.coach_every = float(e.get("COACH_MINUTES", "25")) * 60
@@ -121,7 +135,7 @@ class Supervisor:
                 if abs(k.get("speed", 1) - self.speed) > 0.01:
                     await self.rcon_exec(f"/silent-command game.speed = {self.speed}")
                     log.info("game speed %s -> %s", k.get("speed"), self.speed)
-            await self._sleep(60)
+            await self._sleep(KPI_EVERY)
 
     async def _sleep(self, s: float) -> None:
         try:
@@ -146,33 +160,35 @@ class Supervisor:
                 if self.quota_start_pct is None:
                     self.quota_start_pct = pct
                 self.samples.append((now(), pct))
-                self.samples = [s for s in self.samples if s[0] > now() - 6 * 3600]
+                self.samples = [s for s in self.samples if s[0] > now() - SAMPLE_WINDOW]
                 u = q["usage"]
                 roll = u.get("rolling") or {}
                 if status != "ok" or pct >= 100:
                     log.error("monthly quota exhausted (status=%s pct=%s): stopping", status, pct)
                     self.stop.set()
                     break
-                hot = (roll.get("percent", 0) or 0) >= 92 or (u.get("weekly") or {}).get("percent", 0) >= 98
+                roll_pct = roll.get("percent", 0) or 0
+                week_pct = (u.get("weekly") or {}).get("percent", 0) or 0
+                hot = roll_pct >= ROLLING_HOT or week_pct >= WEEKLY_HOT
                 if hot and not paused_all:
                     paused_all = True
                     for a in self.agents:
-                        a.gate.clear()
+                        a.pause()
                     log.warning("rolling/weekly quota hot (%s): pausing all agents", {k: v.get("percent") for k, v in u.items()})
-                elif paused_all and (roll.get("percent", 0) or 0) < 70 and (u.get("weekly") or {}).get("percent", 0) < 98:
+                elif paused_all and roll_pct < ROLLING_RESUME and week_pct < WEEKLY_HOT:
                     paused_all = False
                     for a in self.agents:
                         if a.name not in self.paused_reason:
-                            a.gate.set()
+                            a.resume()
                     log.info("quota recovered: resuming agents")
-                if not paused_all and now() - last_ctl > 15 * 60:
+                if not paused_all and now() - last_ctl > BURN_EVERY:
                     last_ctl = now()
                     self.control_burn(pct)
             if self.deadline and now() >= self.deadline:
                 log.info("deadline %s reached: stopping", iso(self.deadline))
                 self.stop.set()
                 break
-            await self._sleep(120)
+            await self._sleep(QUOTA_EVERY)
 
     def control_burn(self, pct: int) -> None:
         """Keep monthly burn on track to land at ~100% at the deadline: pause/resume agents."""
@@ -181,29 +197,29 @@ class Supervisor:
         hours_left = max((self.deadline - now()) / 3600, 0.05)
         t0, p0 = self.samples[0]
         span = (now() - t0) / 3600
-        if span < 0.75:
+        if span < BURN_MIN_HOURS:
             return
         rate = (pct - p0) / span                       # percent per hour (coarse: 1% resolution)
         remaining = 100 - pct
         projected = rate * hours_left
-        active = [a for a in self.agents if a.gate.is_set()]
+        active = [a for a in self.agents if not a.paused]
         log.info("burn: pct=%d rate=%.2f%%/h hours_left=%.1f projected=%.1f%% remaining=%d%% active=%d/%d",
                  pct, rate, hours_left, projected, remaining, len(active), len(self.agents))
-        if projected > remaining * 1.15 and len(active) > 1:
+        if projected > remaining * BURN_PAUSE_FACTOR and len(active) > 1:
             a = active[-1]
-            a.gate.clear()
+            a.pause()
             self.paused_reason[a.name] = "burn control"
             log.warning("burn control: pausing %s", a.name)
-        elif projected < remaining * 0.6:
+        elif projected < remaining * BURN_RESUME_FACTOR:
             for a in self.agents:
                 if self.paused_reason.get(a.name) == "burn control":
                     del self.paused_reason[a.name]
-                    a.gate.set()
+                    a.resume()
                     log.info("burn control: resuming %s", a.name)
                     break
 
     async def coach_loop(self) -> None:
-        await self._sleep(min(self.coach_every, 20 * 60))
+        await self._sleep(min(self.coach_every, COACH_FIRST_WAIT))
         while not self.stop.is_set():
             try:
                 await self.run_coach()
@@ -223,7 +239,7 @@ class Supervisor:
         for a in self.agents:
             sf = self.root / "status" / f"{a.name}.txt"
             nf = self.root / "notes" / f"{a.name}.md"
-            lines.append(f"--- {a.name} ({a.model}) turns={a.m['turns']} tool_errors={a.m['tool_errors']} paused={not a.gate.is_set()}")
+            lines.append(f"--- {a.name} ({a.model}) turns={a.m['turns']} tool_errors={a.m['tool_errors']} paused={a.paused}")
             lines.append("status: " + (sf.read_text()[:200] if sf.exists() else "(none)"))
             lines.append("notes: " + (nf.read_text()[:1200] if nf.exists() else "(none)"))
         prev = (self.root / "board.md")
@@ -242,9 +258,9 @@ class Supervisor:
             data = {"ts": iso(now()), "started": iso(self.started), "deadline": iso(self.deadline) if self.deadline else None,
                     "quota": (self.quota or {}).get("usage"), "key": (self.quota or {}).get("key"), "monthly_start_pct": self.quota_start_pct,
                     "gateway": self.gw.stats, "ups": round(self.ups, 1), "kpi": self.kpi,
-                    "agents": {a.name: {**a.m, "model": a.model, "paused": not a.gate.is_set(), "fatal": a.fatal} for a in self.agents}}
+                    "agents": {a.name: a.summary_row() for a in self.agents}}
             (self.root / "runner.json").write_text(json.dumps(data), encoding="utf-8")
-            if now() - last_hist >= 60:        # time series for the dashboard charts
+            if now() - last_hist >= HISTORY_EVERY:        # time series for the dashboard charts
                 last_hist = now()
                 g = self.gw.stats
                 with (self.root / "history.jsonl").open("a") as fh:
@@ -252,7 +268,7 @@ class Supervisor:
                                          "turns": sum(a.m["turns"] for a in self.agents), "prompt": g["prompt"],
                                          "cached": g["cached"], "completion": g["completion"], "requests": g["requests"],
                                          "errors": g["errors"], "tool_errors": sum(a.m["tool_errors"] for a in self.agents)}) + "\n")
-            await self._sleep(30)
+            await self._sleep(REPORT_EVERY)
 
     async def main(self) -> None:
         loop = asyncio.get_running_loop()
@@ -269,13 +285,13 @@ class Supervisor:
         tasks = [asyncio.create_task(self.quota_loop()), asyncio.create_task(self.game_loop()),
                  asyncio.create_task(self.coach_loop()), asyncio.create_task(self.report_loop())]
         for i, a in enumerate(self.agents):
-            tasks.append(asyncio.create_task(self._start_agent(a, i * 15)))
+            tasks.append(asyncio.create_task(self._start_agent(a, i * AGENT_STAGGER)))
         await self.stop.wait()
         log.info("stopping agents")
         for a in self.agents:
             a.stop.set()
-            a.gate.set()
-        await asyncio.wait(tasks, timeout=30)
+            a.resume()
+        await asyncio.wait(tasks, timeout=STOP_GRACE)
         for t in tasks:
             t.cancel()
 

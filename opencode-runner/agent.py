@@ -5,7 +5,7 @@ import asyncio
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from factorio_mcp.game import Config as GameConfig
@@ -98,6 +98,21 @@ class Agent:
         self._app = None
         self._full_desc: dict[str, str] = {}
         self.tools: list[dict] = []
+
+    # ---------- public surface for the supervisor ----------
+    @property
+    def paused(self) -> bool:
+        return not self.gate.is_set()
+
+    def pause(self) -> None:
+        self.gate.clear()
+
+    def resume(self) -> None:
+        self.gate.set()
+
+    def summary_row(self) -> dict:
+        """What runner.json / the dashboard show for this agent."""
+        return {**self.m, "model": self.model, "paused": self.paused, "fatal": self.fatal}
 
     # ---------- files ----------
     def _p(self, kind: str, ext: str = "md") -> Path:
