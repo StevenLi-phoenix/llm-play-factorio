@@ -8,12 +8,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - opencode-runner: supervisor, per-character LLM agents, coach, quota-paced burn control, `report.py --oneline`.
 - Read-only realtime status page (SSE) and history sampling; systemd user units for factorio, agents, dashboard.
 - `scripts/pick_seed.py` re-rolls map seeds until spawn resources are healthy.
+- Coach looks ahead to the next science pack and power capacity.
 - Prompt hints: research prerequisites, `can_place` before `build_plan`, drill fuel logistics, powered labs, flat `run_plan` step examples.
 
 ### Documentation
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
 ### Fixed
+- Truncated tool-call JSON (reply cut at `max_tokens`) is logged and the agent is told to shorten its output.
 - Runner fails fast at startup when a prompt template has stray braces (`check_templates`, test in `opencode-runner/tests`).
 
 ### Changed

@@ -304,7 +304,11 @@ class Agent:
                     if not isinstance(args, dict):
                         raise ValueError("arguments must be a JSON object")
                 except ValueError as e:
-                    out = f"ERROR: invalid JSON arguments ({e}). Send a JSON object."
+                    cut = r["choices"][0].get("finish_reason") == "length"
+                    self.log.warning("T%d %s: invalid JSON arguments (%s)%s", self.m["turns"], name, e,
+                                     " - reply was cut at max_tokens" if cut else "")
+                    out = (f"ERROR: invalid JSON arguments ({e}). Send a JSON object."
+                           + (" Your reply hit the output limit and was cut: think less and send shorter arguments." if cut else ""))
                 else:
                     out = "skipped: too many tool calls in one turn, repeat it next turn" if i >= MAX_TOOL_CALLS_PER_TURN \
                         else self._trim(await self._call(name, args))

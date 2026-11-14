@@ -89,6 +89,8 @@ the BOARD the workers read: <= 450 words, plain text, this shape:
   PRIORITIES: the 3-5 things that most increase science/hour right now, each with an owner (worker name) and a measurable
   'done when'. Give disjoint areas to different workers so they never overbuild each other. Keep the research queue
   full: name the next techs to queue.
+  Look ahead: plan the next science pack's production line and the power capacity (steam engines/boilers vs. the
+  no_power count) BEFORE the current tech finishes; assign fuel/coal logistics when no_fuel climbs across snapshots.
   WARNINGS: concrete bugs/starvation seen in the KPIs or statuses (what, where) and who fixes it.
 Be specific with coordinates taken from the statuses/notes. Do not invent coordinates. Reply with the board text only."""
 
