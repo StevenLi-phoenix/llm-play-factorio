@@ -45,9 +45,10 @@ KPI_LUA = r"""
 local f = game.forces.player
 local s = game.surfaces.nauvis
 local out = {tick = game.tick, speed = game.speed, research = f.current_research and f.current_research.name or nil,
-  progress = f.research_progress, queue = {}, done = 0, counts = {}, problems = {}, produced = {}, chars = {}}
+  progress = f.research_progress, queue = {}, done = 0, researched = {}, counts = {}, problems = {}, produced = {}, chars = {}}
 for _, t in pairs(f.research_queue) do out.queue[#out.queue+1] = t.name end
-for _, t in pairs(f.technologies) do if t.researched and t.enabled then out.done = out.done + 1 end end
+for _, t in pairs(f.technologies) do if t.researched and t.enabled then out.done = out.done + 1; out.researched[#out.researched+1] = t.name end end
+table.sort(out.researched)
 local probs = {[defines.entity_status.no_fuel]="no_fuel", [defines.entity_status.no_power]="no_power",
   [defines.entity_status.low_power]="low_power", [defines.entity_status.no_ingredients]="no_ingredients",
   [defines.entity_status.waiting_for_space_in_destination]="output_blocked", [defines.entity_status.no_minable_resources]="depleted"}
@@ -271,6 +272,7 @@ class Supervisor:
         t = k.get("tick", 0) // 60
         lines = [f"game time {t // 3600}:{t // 60 % 60:02d}  tick {k.get('tick')}  speed {k.get('speed')}  ups {self.ups:.0f}",
                  f"research: {k.get('research')} {float(k.get('progress') or 0):.0%}; queue {k.get('queue')}; techs done {k.get('done')}",
+                 f"researched techs: {', '.join(k.get('researched') or []) or '(none)'}",
                  f"produced totals: {k.get('produced')}", f"buildings: {dict(sorted((k.get('counts') or {}).items(), key=lambda kv: -kv[1])[:30])}",
                  f"problems: {k.get('problems')}", f"characters: {k.get('chars')}", self.trend_line()]
         for a in self.agents:

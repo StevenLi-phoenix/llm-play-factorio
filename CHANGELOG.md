@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased] - 2026-11-14
 
 ### Added
+- Coach input lists the researched techs (KPI `researched`), so its research queue skips finished ones; worker prompt lists valid `run_plan` step types and the `job_wait` argument.
 - Coach input has a 30-minute trend line (research, packs produced, buildings, problems) so stalls are visible; a prompt rule makes unblocking the labs the first priority.
 - `LLM_EXTRA_BODY` (JSON) merged into every gateway request, e.g. `{"reasoning_effort":"low"}`; dropped automatically if the gateway rejects it. Off by default.
 - opencode-runner: supervisor, per-character LLM agents, coach, quota-paced burn control, `report.py --oneline`.

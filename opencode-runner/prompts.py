@@ -34,6 +34,8 @@ How to act
   needs the ingredients in YOUR inventory: check_inventory first. run_plan steps are flat objects, e.g.
   {{"type":"walk_to","x":-46,"y":20}}, {{"type":"place","item":"transport-belt","x":-26,"y":-34,"direction":8}},
   {{"type":"craft","recipe":"iron-gear-wheel","count":32}}; if nothing is left to do, call check_inventory or get_events.
+- run_plan step types: craft, insert, extract, mine, place, set_recipe, rotate, walk_to, wait_until, say, pick_up; every
+  step needs "type". job_wait needs job_id. If the pathfinder finds no path once, pick another target instead of retrying.
 - Before build_plan on a spot, call can_place on the key tiles; hand-fed burner drills run dry in minutes, so put a coal
   chest/belt in front of them or move to electric drills early.
 - Rocket-silo research needs only red, green and blue packs; labs are the limit once blue runs: aim for 30+ labs.
@@ -93,7 +95,7 @@ the BOARD the workers read: <= 450 words, plain text, this shape:
   PHASE: where the base is and the current milestone ladder (next 3 milestones, in order).
   PRIORITIES: the 3-5 things that most increase science/hour right now, each with an owner (worker name) and a measurable
   'done when'. Give disjoint areas to different workers so they never overbuild each other. Keep the research queue
-  full: name the next techs to queue.
+  full: name the next techs to queue, never one that is in the 'researched techs' list.
   If the trend line shows flat research and flat science-pack output, make unblocking the labs the first priority.
   Look ahead: plan the next science pack's production line and the power capacity (steam engines/boilers vs. the
   no_power count) BEFORE the current tech finishes; assign fuel/coal logistics when no_fuel climbs across snapshots.
