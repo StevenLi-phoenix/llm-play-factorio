@@ -4,7 +4,7 @@ After=factorio.service
 Requires=factorio.service
 
 [Service]
-Environment=WORKER_MODELS=deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash
+Environment=WORKER_MODELS=deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash
 Environment=COACH_MODEL=deepseek-v4.1-flash
 Environment=GAME_SPEED=2
 ExecStart=%h/factorio-agent/repo/opencode-runner/runner.sh

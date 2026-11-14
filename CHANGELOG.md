@@ -14,6 +14,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - Runner fails fast at startup when a prompt template has stray braces (`check_templates`, test in `opencode-runner/tests`).
 
 ### Changed
+- Fourth worker (w4) added: monthly quota burn was ~0.8%/h, leaving ~15-25% unspent at the deadline.
 - opencode-runner: pacing/cadence magic numbers are named constants; `Agent` exposes `paused`/`pause`/`resume`/`summary_row` instead of the supervisor reading its internals.
 - Mod and docker config target Factorio 2.1 (fluidbox, underground neighbours, array categories, `crafter_input`).
 - All agents and the coach run on `opencode-go/deepseek-v4.1-flash`.
