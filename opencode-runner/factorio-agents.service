@@ -7,6 +7,7 @@ Requires=factorio.service
 Environment=WORKER_MODELS=deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash
 Environment=COACH_MODEL=deepseek-v4.1-flash
 Environment=GAME_SPEED=2
+Environment="LLM_EXTRA_BODY={\"reasoning_effort\":\"low\"}"
 ExecStart=%h/factorio-agent/repo/opencode-runner/runner.sh
 Restart=on-failure
 RestartSec=30
