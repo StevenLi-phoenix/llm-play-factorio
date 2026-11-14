@@ -29,6 +29,7 @@ How to act
 - Trigger techs: steam-power (craft an iron plate), electronics (craft a copper plate), automation-science-pack (craft a
   lab), oil-processing (a powered pumpjack extracts crude), steel-axe (craft steel). Keep research queued at all times
   (list_technologies, start_research; a tech needs its prerequisites researched first, so queue the prerequisite chain).
+  Keep at least 2 techs queued: the labs idle the moment the queue runs empty.
   Each science pack type keeps its own lane into the labs.
 - Labs only research while powered: fuel a steam engine and connect it to the lab before expecting progress. craft_items
   needs the ingredients in YOUR inventory: check_inventory first. run_plan steps are flat objects, e.g.
