@@ -11,7 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - Read-only realtime status page (SSE) and history sampling; systemd user units for factorio, agents, dashboard.
 - `scripts/pick_seed.py` re-rolls map seeds until spawn resources are healthy.
 - Coach looks ahead to the next science pack and power capacity.
-- Prompt hints: research prerequisites, `can_place` before `build_plan`, drill fuel logistics, powered labs, flat `run_plan` step examples.
+- Prompt hints: no re-scan within 3 turns, check `list_technologies` before `start_research`; research prerequisites, `can_place` before `build_plan`, drill fuel logistics, powered labs, flat `run_plan` step examples.
 
 ### Documentation
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
