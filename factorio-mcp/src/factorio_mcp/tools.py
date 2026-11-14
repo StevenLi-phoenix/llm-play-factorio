@@ -1090,7 +1090,8 @@ def register(app: MCPServer, game: Game) -> None:
         failed = next((jr for jr in outcomes if jr.status == "failed" and not steps[ids.index(jr.job_id)].optional), None)
         if failed:
             game.new_queue()
-            raise ToolError("\n".join(lines) + f"\nJob #{failed.job_id} ({failed.type}) failed; the steps after it were cancelled.")
+            raise ToolError(f"Job #{failed.job_id} ({failed.type}) failed{': ' + failed.detail if failed.detail else ''}; the steps after it were cancelled.\n"
+                            + "\n".join(lines))
         return "\n".join(lines)
 
     @tool("Mine your force's own buildings back into your inventory (vanilla mining time): the nearest one at x,y, "
