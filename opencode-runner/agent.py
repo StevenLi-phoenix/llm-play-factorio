@@ -18,6 +18,7 @@ KEEP_TAIL = 14            # messages never elided
 HIGH_TOKENS = 42_000      # prompt tokens that trigger a shrink
 MAX_RESULT_CHARS = 5_500  # per tool result
 MAX_TOOL_CALLS_PER_TURN = 8
+RESTART_BACKOFF, RESTART_BACKOFF_MAX = 10, 300   # seconds between crashed-session restarts (doubles up to the max)
 
 
 @dataclass
@@ -227,11 +228,11 @@ class Agent:
 
     # ---------- main loop ----------
     async def run_forever(self) -> None:
-        backoff = 10
+        backoff = RESTART_BACKOFF
         while not self.stop.is_set() and not self.fatal:
             try:
                 await self._session()
-                backoff = 10
+                backoff = RESTART_BACKOFF
             except GatewayFatal as e:
                 self.fatal = str(e)
                 self.log.error("fatal gateway error: %s", e)
@@ -240,7 +241,7 @@ class Agent:
             except Exception:  # noqa: BLE001
                 self.log.exception("session crashed; restarting in %ss", backoff)
                 await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, 300)
+                backoff = min(backoff * 2, RESTART_BACKOFF_MAX)
             finally:
                 await self._teardown_app()
 
