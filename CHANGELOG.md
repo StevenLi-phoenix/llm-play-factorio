@@ -17,6 +17,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
 ### Fixed
+- Burn control no longer pauses a worker on integer-percent noise: it needs a 3 h sample span, discounts one rounding point, and reloads samples from `history.jsonl` after a restart (w4 had been paused at 62->63%).
 - A reply cut at the output limit gets a dedicated nudge (and is counted as `cut` in agent metrics) instead of the generic one.
 - `analyze_factory` description says it is centred on the character and takes only `radius`.
 - Truncated tool-call JSON (reply cut at `max_tokens`) is logged and the agent is told to shorten its output.

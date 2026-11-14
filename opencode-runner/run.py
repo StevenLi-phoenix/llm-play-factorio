@@ -31,7 +31,7 @@ QUOTA_EVERY = 120               # gateway quota poll
 REPORT_EVERY = 30               # runner.json rewrite
 HISTORY_EVERY = 60              # history.jsonl row for the dashboard charts
 BURN_EVERY = 15 * 60            # burn-control evaluation interval
-BURN_MIN_HOURS = 0.75           # minimum sample span before burn control acts
+BURN_MIN_HOURS = 3.0            # minimum sample span before burn control acts (the percent is an integer: short spans exaggerate the rate)
 SAMPLE_WINDOW = 6 * 3600        # quota samples kept for the burn-rate estimate
 ROLLING_HOT, ROLLING_RESUME, WEEKLY_HOT = 92, 70, 98   # percent thresholds that pause / resume all agents
 BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.6      # projected/remaining ratios that pause / resume one agent
@@ -100,13 +100,30 @@ class Supervisor:
         self.deadline = parse_iso(e["DEADLINE"]) if e.get("DEADLINE") else None
         self.stop = asyncio.Event()
         self.quota: dict | None = None
-        self.samples: list[tuple[float, int]] = []        # (ts, monthly percent)
+        self.samples: list[tuple[float, int]] = self._load_samples()   # (ts, monthly percent); survives restarts
         self.kpi: dict | None = None
         self.kpi_hist: collections.deque = collections.deque(maxlen=KPI_HISTORY)   # (wall ts, kpi) for trend lines
         self.ups = 0.0
         self.paused_reason: dict[str, str] = {}
         self.started = now()
         self.quota_start_pct: int | None = None
+
+    def _load_samples(self) -> list[tuple[float, int]]:
+        """Monthly-percent samples from history.jsonl, so a restart does not shrink the burn-rate window."""
+        out: list[tuple[float, int]] = []
+        try:
+            for line in (self.root / "history.jsonl").read_text(encoding="utf-8").splitlines():
+                try:
+                    r = json.loads(line)
+                    out.append((float(r["ts"]), int(r["monthly"])))
+                except (ValueError, KeyError, TypeError):
+                    continue
+        except OSError:
+            return []
+        cutoff = now() - SAMPLE_WINDOW
+        out = [x for x in out[-SAMPLE_WINDOW // HISTORY_EVERY - 10:] if x[0] > cutoff]
+        log.info("burn: loaded %d monthly samples from history.jsonl", len(out))
+        return out[::10] if len(out) > 60 else out
 
     # ---------- RCON helpers ----------
     async def rcon_exec(self, cmd: str) -> str:
@@ -206,11 +223,12 @@ class Supervisor:
         if span < BURN_MIN_HOURS:
             return
         rate = (pct - p0) / span                       # percent per hour (coarse: 1% resolution)
+        rate_low = max(pct - p0 - 1, 0) / span         # discount one rounding point: pause only if overspending even then
         remaining = 100 - pct
-        projected = rate * hours_left
+        projected = rate_low * hours_left
         active = [a for a in self.agents if not a.paused]
-        log.info("burn: pct=%d rate=%.2f%%/h hours_left=%.1f projected=%.1f%% remaining=%d%% active=%d/%d",
-                 pct, rate, hours_left, projected, remaining, len(active), len(self.agents))
+        log.info("burn: pct=%d rate=%.2f%%/h (rounding-discounted %.2f) span=%.1fh hours_left=%.1f projected=%.1f%% remaining=%d%% active=%d/%d",
+                 pct, rate, rate_low, span, hours_left, projected, remaining, len(active), len(self.agents))
         if projected > remaining * BURN_PAUSE_FACTOR and len(active) > 1:
             a = active[-1]
             a.pause()
