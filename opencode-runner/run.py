@@ -7,6 +7,7 @@ COACH_MODEL, LLM_EXTRA_BODY (JSON merged into every chat request, e.g. {"reasoni
 from __future__ import annotations
 
 import asyncio
+import collections
 import json
 import logging
 import os
@@ -36,6 +37,7 @@ ROLLING_HOT, ROLLING_RESUME, WEEKLY_HOT = 92, 70, 98   # percent thresholds that
 BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.6      # projected/remaining ratios that pause / resume one agent
 AGENT_STAGGER = 15              # start workers this many seconds apart
 COACH_FIRST_WAIT = 20 * 60      # first coach run no later than this
+KPI_HISTORY = 90                # kpi samples kept in memory for the coach's trend line
 STOP_GRACE = 30                 # seconds agents get to finish after stop
 
 KPI_LUA = r"""
@@ -99,6 +101,7 @@ class Supervisor:
         self.quota: dict | None = None
         self.samples: list[tuple[float, int]] = []        # (ts, monthly percent)
         self.kpi: dict | None = None
+        self.kpi_hist: collections.deque = collections.deque(maxlen=KPI_HISTORY)   # (wall ts, kpi) for trend lines
         self.ups = 0.0
         self.paused_reason: dict[str, str] = {}
         self.started = now()
@@ -128,6 +131,7 @@ class Supervisor:
             k = await self.read_kpi()
             if k:
                 self.kpi = k
+                self.kpi_hist.append((now(), k))
                 if last_tick is not None and now() > last_wall:
                     self.ups = (k["tick"] - last_tick) / (now() - last_wall)
                 last_tick, last_wall = k["tick"], now()
@@ -230,13 +234,26 @@ class Supervisor:
                 log.exception("coach failed")
             await self._sleep(self.coach_every)
 
+    def trend_line(self) -> str:
+        """Progress over the last ~30 min of samples, so the coach sees stalls (flat research and flat pack output)."""
+        if len(self.kpi_hist) < 2:
+            return "trend: (not enough samples yet)"
+        t1, k1 = self.kpi_hist[-1]
+        t0, k0 = next(((t, k) for t, k in self.kpi_hist if t1 - t <= 30 * 60), self.kpi_hist[0])
+        packs = [p for p in k1.get("produced", {}) if p.endswith("science-pack") or p == "electronic-circuit"]
+        d = {p: (k1["produced"].get(p, 0) - (k0.get("produced") or {}).get(p, 0)) for p in packs}
+        b = lambda k: sum((k.get("counts") or {}).values())  # noqa: E731
+        return (f"trend over the last {(t1 - t0) / 60:.0f} min: research {k0.get('research')} {float(k0.get('progress') or 0):.0%} -> "
+                f"{k1.get('research')} {float(k1.get('progress') or 0):.0%}; techs done {k0.get('done')} -> {k1.get('done')}; "
+                f"buildings {b(k0)} -> {b(k1)}; items produced meanwhile {d}; problems then {k0.get('problems')} now {k1.get('problems')}")
+
     async def run_coach(self) -> None:
         k = self.kpi or await self.read_kpi() or {}
         t = k.get("tick", 0) // 60
         lines = [f"game time {t // 3600}:{t // 60 % 60:02d}  tick {k.get('tick')}  speed {k.get('speed')}  ups {self.ups:.0f}",
                  f"research: {k.get('research')} {float(k.get('progress') or 0):.0%}; queue {k.get('queue')}; techs done {k.get('done')}",
                  f"produced totals: {k.get('produced')}", f"buildings: {dict(sorted((k.get('counts') or {}).items(), key=lambda kv: -kv[1])[:30])}",
-                 f"problems: {k.get('problems')}", f"characters: {k.get('chars')}"]
+                 f"problems: {k.get('problems')}", f"characters: {k.get('chars')}", self.trend_line()]
         for a in self.agents:
             sf = self.root / "status" / f"{a.name}.txt"
             nf = self.root / "notes" / f"{a.name}.md"

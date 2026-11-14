@@ -502,7 +502,8 @@ def register(app: MCPServer, game: Game) -> None:
         return "\n".join(lines)
 
     @tool("Machines of your force in an area (explored ground) grouped by problem — no power, low power, no fuel, "
-          "missing ingredients (with which ingredient when detectable), output full, depleted ore, idle — plus power summary.")
+          "missing ingredients (with which ingredient when detectable), output full, depleted ore, idle — plus power summary. "
+          "Centred on your character; the only argument is radius (no x/y).")
     async def analyze_factory(radius: Annotated[float, Field(ge=5, le=150)] = 40) -> str:
         r = await game.call("analyze_factory", {"radius": radius})
         lines = [f"Checked {r['machines_checked']} entities with a status within {r['radius']} tiles: "

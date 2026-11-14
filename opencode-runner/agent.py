@@ -12,7 +12,7 @@ from factorio_mcp.game import Config as GameConfig
 from factorio_mcp.server import build_app
 
 from llm import Gateway, GatewayBadRequest, GatewayFatal
-from prompts import COMPACT_PROMPT, NUDGE, START_MSG, WORKER_SYSTEM
+from prompts import COMPACT_PROMPT, NUDGE, NUDGE_CUT, START_MSG, WORKER_SYSTEM
 
 KEEP_TAIL = 14            # messages never elided
 HIGH_TOKENS = 42_000      # prompt tokens that trigger a shrink
@@ -297,7 +297,9 @@ class Agent:
             if not calls:
                 self.m["no_tool"] += 1
                 self.log.info("T%d no tool call (%s) %s", self.m["turns"], r["choices"][0].get("finish_reason"), (msg.get("content") or "")[:120])
-                self.history.append({"role": "user", "content": NUDGE})
+                cut = r["choices"][0].get("finish_reason") == "length"
+                self.m["cut"] = self.m.get("cut", 0) + int(cut)
+                self.history.append({"role": "user", "content": NUDGE_CUT if cut else NUDGE})
             for i, c in enumerate(calls):
                 name = c["function"]["name"]
                 try:

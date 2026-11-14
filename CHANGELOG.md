@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased] - 2026-11-14
 
 ### Added
+- Coach input has a 30-minute trend line (research, packs produced, buildings, problems) so stalls are visible; a prompt rule makes unblocking the labs the first priority.
 - `LLM_EXTRA_BODY` (JSON) merged into every gateway request, e.g. `{"reasoning_effort":"low"}`; dropped automatically if the gateway rejects it. Off by default.
 - opencode-runner: supervisor, per-character LLM agents, coach, quota-paced burn control, `report.py --oneline`.
 - Read-only realtime status page (SSE) and history sampling; systemd user units for factorio, agents, dashboard.
@@ -16,6 +17,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
 ### Fixed
+- A reply cut at the output limit gets a dedicated nudge (and is counted as `cut` in agent metrics) instead of the generic one.
+- `analyze_factory` description says it is centred on the character and takes only `radius`.
 - Truncated tool-call JSON (reply cut at `max_tokens`) is logged and the agent is told to shorten its output.
 - Runner fails fast at startup when a prompt template has stray braces (`check_templates`, test in `opencode-runner/tests`).
 

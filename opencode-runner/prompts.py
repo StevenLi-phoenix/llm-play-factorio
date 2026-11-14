@@ -44,6 +44,7 @@ Rules (breaking any invalidates the run)
 - Only the game tools touch the game. Do not remove or rebuild other agents' buildings. Human players are spectators.
 
 Working style (you pay for every turn)
+- A reply that hits the output limit is cut before its tool call and wasted: keep reasoning short, call the tool early.
 - Think briefly, then act: 2-6 tool calls per turn that move the factory forward. Do not narrate. Never reply without a
   tool call unless the board tells you to stop.
 - Keep results small: use small radii, targeted inspect_entity, trace_belt/measure_belt to diagnose instead of big scans.
@@ -78,6 +79,8 @@ Board:
 Begin: call status first, then continue your task. If the board has no assignment for you, bootstrap the base (iron/coal
 burner drills, furnaces, hand-craft, then electricity and a lab) and publish status_set."""
 
+NUDGE_CUT = ("Your last reply was cut at the output limit before any tool call, so nothing happened. Think in a few "
+             "sentences at most and make the tool call first.")
 NUDGE = ("You replied without a tool call. Act now: call a game tool (status/look_around if unsure). "
          "If you are waiting for a job, call job_wait.")
 
@@ -89,6 +92,7 @@ the BOARD the workers read: <= 450 words, plain text, this shape:
   PRIORITIES: the 3-5 things that most increase science/hour right now, each with an owner (worker name) and a measurable
   'done when'. Give disjoint areas to different workers so they never overbuild each other. Keep the research queue
   full: name the next techs to queue.
+  If the trend line shows flat research and flat science-pack output, make unblocking the labs the first priority.
   Look ahead: plan the next science pack's production line and the power capacity (steam engines/boilers vs. the
   no_power count) BEFORE the current tech finishes; assign fuel/coal logistics when no_fuel climbs across snapshots.
   WARNINGS: concrete bugs/starvation seen in the KPIs or statuses (what, where) and who fixes it.
