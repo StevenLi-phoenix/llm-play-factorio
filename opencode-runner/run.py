@@ -236,6 +236,7 @@ class Supervisor:
             log.info("coach wrote board (%d chars)", len(text))
 
     async def report_loop(self) -> None:
+        last_hist = 0.0
         while not self.stop.is_set():
             pct, status, reset = self.monthly()
             data = {"ts": iso(now()), "started": iso(self.started), "deadline": iso(self.deadline) if self.deadline else None,
@@ -243,6 +244,14 @@ class Supervisor:
                     "gateway": self.gw.stats, "ups": round(self.ups, 1), "kpi": self.kpi,
                     "agents": {a.name: {**a.m, "model": a.model, "paused": not a.gate.is_set(), "fatal": a.fatal} for a in self.agents}}
             (self.root / "runner.json").write_text(json.dumps(data), encoding="utf-8")
+            if now() - last_hist >= 60:        # time series for the dashboard charts
+                last_hist = now()
+                g = self.gw.stats
+                with (self.root / "history.jsonl").open("a") as fh:
+                    fh.write(json.dumps({"ts": now(), "monthly": pct, "spend": (data["key"] or {}).get("spend_usd"),
+                                         "turns": sum(a.m["turns"] for a in self.agents), "prompt": g["prompt"],
+                                         "cached": g["cached"], "completion": g["completion"], "requests": g["requests"],
+                                         "errors": g["errors"], "tool_errors": sum(a.m["tool_errors"] for a in self.agents)}) + "\n")
             await self._sleep(30)
 
     async def main(self) -> None:

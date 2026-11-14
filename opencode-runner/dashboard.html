@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factorio · opencode-go run</title>
+<style>
+:root{
+  --bg:#0e1116;--panel:#161b22;--panel2:#1c232c;--line:#2a323d;--text:#e6edf3;--mute:#8b98a7;
+  --ok:#3fb950;--warn:#d29922;--bad:#f85149;--acc:#ff9b2f;--blue:#58a6ff;--violet:#b392f0;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#f4f6f8;--panel:#fff;--panel2:#eef1f4;--line:#d6dce3;--text:#1b2430;--mute:#5d6b7a;--acc:#c46a00;--blue:#0b64c0;--violet:#6f42c1}}
+:root[data-theme="light"]{--bg:#f4f6f8;--panel:#fff;--panel2:#eef1f4;--line:#d6dce3;--text:#1b2430;--mute:#5d6b7a;--acc:#c46a00;--blue:#0b64c0;--violet:#6f42c1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;margin-bottom:14px}
+h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.2px}
+h1 small{color:var(--mute);font-weight:400;margin-left:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--mute)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.dot.ok{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.dot.bad{background:var(--bad)} .dot.warn{background:var(--warn)}
+.grid{display:grid;gap:12px}
+.top{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.card h2{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mute);margin:0 0 8px;font-weight:600}
+.big{font-size:26px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.1}
+.sub{color:var(--mute);font-size:12px;margin-top:3px}
+.bar{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;margin:5px 0 2px}
+.bar>i{display:block;height:100%;background:var(--blue);border-radius:5px;transition:width .6s}
+.bar.warn>i{background:var(--warn)} .bar.bad>i{background:var(--bad)} .bar.ok>i{background:var(--ok)}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mute)}
+.row b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.cols{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.agents{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.agent{cursor:pointer}
+.agent .head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.agent .name{font-weight:650}
+.status{margin:6px 0 8px;min-height:2.6em;color:var(--text);overflow-wrap:anywhere}
+.status.empty{color:var(--mute);font-style:italic}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.kv div{background:var(--panel2);border-radius:6px;padding:5px 7px;font-size:11px;color:var(--mute)}
+.kv b{display:block;color:var(--text);font-size:14px;font-variant-numeric:tabular-nums}
+.detail{display:none;margin-top:10px}
+.agent.open .detail{display:block}
+pre{margin:6px 0 0;padding:8px;background:var(--panel2);border-radius:6px;font:11.5px/1.4 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-size:12px;font-variant-numeric:tabular-nums}
+.chip b{color:var(--acc);font-weight:600}
+.chip.bad{border-color:var(--bad);color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+td{padding:3px 6px;border-top:1px solid var(--line)} td:nth-child(2){text-align:right;font-weight:600}
+td svg{display:block}
+.feed{max-height:340px;overflow:auto;font:11.5px/1.5 var(--mono)}
+.feed div{padding:1px 0;border-top:1px solid color-mix(in srgb,var(--line) 50%,transparent);overflow-wrap:anywhere}
+.feed .t{color:var(--mute)} .feed .a{color:var(--blue);font-weight:600} .feed .e{color:var(--bad)}
+.charts{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:12px}
+.chart svg{width:100%;height:90px;display:block}
+.legend{font-size:11px;color:var(--mute);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+.board{white-space:pre-wrap;font-size:13px;overflow-wrap:anywhere;max-height:360px;overflow:auto}
+.stale{background:color-mix(in srgb,var(--bad) 18%,var(--panel));border-color:var(--bad)}
+button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Factorio 2.1 · Space Age <small>opencode-go agents</small></h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span class="pill"><span class="dot" id="conn"></span><span id="connText">connecting</span></span>
+      <span class="pill" id="updated">–</span>
+      <button id="theme" title="toggle theme">◐</button>
+    </div>
+  </header>
+
+  <div class="grid top" id="top"></div>
+
+  <div class="grid cols">
+    <div>
+      <div class="grid agents" id="agents"></div>
+      <div class="grid charts" id="charts"></div>
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="card"><h2>Research</h2><div id="research"></div></div>
+      <div class="card"><h2>Production (all-time)</h2><table id="produced"></table></div>
+      <div class="card"><h2>Base</h2><div class="chips" id="buildings"></div><div class="chips" id="problems" style="margin-top:8px"></div></div>
+      <div class="card"><h2>Coach board</h2><div class="board" id="board"></div></div>
+      <div class="card"><h2>Live feed</h2><div class="feed" id="feed"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+const fmt = (n) => n == null ? "–" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? (n / 1e3).toFixed(1) + "k" : String(Math.round(n));
+const pct = (x) => Math.max(0, Math.min(100, x || 0));
+const dur = (s) => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m ${String(s % 60).padStart(2, "0")}s`; };
+const gtime = (tick) => { const t = Math.floor((tick || 0) / 60); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`; };
+const SVGNS = "http://www.w3.org/2000/svg";
+
+/* ---------- theme ---------- */
+const root = document.documentElement;
+try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) { /* storage blocked */ }
+$("theme").onclick = () => {
+  const dark = (root.dataset.theme || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")) === "dark";
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("theme", root.dataset.theme); } catch (e) { /* ignore */ }
+};
+
+/* ---------- small SVG line chart ---------- */
+function lineChart(series, opts = {}) {
+  const w = 300, h = 90, pad = 4, svg = document.createElementNS(SVGNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`); svg.setAttribute("preserveAspectRatio", "none");
+  const all = series.flatMap((s) => s.points.filter((p) => p[1] != null));
+  if (all.length < 2) return svg;
+  const x0 = Math.min(...all.map((p) => p[0])), x1 = Math.max(...all.map((p) => p[0]));
+  const y0 = opts.min ?? Math.min(...all.map((p) => p[1])), y1 = opts.max ?? Math.max(...all.map((p) => p[1]), y0 + 1e-9);
+  const X = (x) => pad + (w - 2 * pad) * (x1 === x0 ? 0 : (x - x0) / (x1 - x0));
+  const Y = (y) => h - pad - (h - 2 * pad) * (y1 === y0 ? 0 : (y - y0) / (y1 - y0));
+  for (const s of series) {
+    const pts = s.points.filter((p) => p[1] != null);
+    if (pts.length < 2) continue;
+    const path = document.createElementNS(SVGNS, "path");
+    path.setAttribute("d", pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1)).join(" "));
+    path.setAttribute("fill", "none"); path.setAttribute("stroke", s.color); path.setAttribute("stroke-width", "1.8");
+    path.setAttribute("vector-effect", "non-scaling-stroke"); path.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(path);
+  }
+  return svg;
+}
+const spark = (vals) => lineChart([{ color: "var(--acc)", points: vals.map((v, i) => [i, v]) }]);
+
+/* ---------- renderers ---------- */
+function stat(title, big, sub, extra) {
+  const c = el("div", "card"); c.append(el("h2", "", title), el("div", "big", big));
+  if (sub) c.append(el("div", "sub", sub)); if (extra) c.append(extra); return c;
+}
+function quotaBar(name, q) {
+  const wrap = el("div"), p = q ? q.percent : 0, row = el("div", "row");
+  row.append(el("span", "", name), el("b", "", q ? `${p}%` : "–"));
+  wrap.append(row);
+  const bar = el("div", "bar " + (p >= 92 ? "bad" : p >= 75 ? "warn" : "")); const i = el("i"); i.style.width = pct(p) + "%"; bar.append(i);
+  wrap.append(bar); return wrap;
+}
+
+function renderTop(s) {
+  const r = s.runner || {}, k = r.kpi || {}, q = r.quota || {}, key = r.key || {}, now = s.now;
+  const top = $("top"); top.replaceChildren();
+  const left = r.deadline ? Date.parse(r.deadline) / 1000 - now : null;
+  top.append(
+    stat("Game clock", gtime(k.tick), `speed ${k.speed ?? "–"}× · ${r.ups ?? 0} ups · tick ${fmt(k.tick)}`),
+    stat("Until OpenCode reset", left == null ? "–" : dur(left), r.deadline ? "deadline " + r.deadline.replace("T", " ").replace("Z", " UTC") : ""),
+  );
+  const qc = el("div", "card"); qc.append(el("h2", "", "OpenCode quota"));
+  qc.append(quotaBar("monthly", q.monthly), quotaBar("weekly", q.weekly), quotaBar("5-hour", q.rolling));
+  const startPct = r.monthly_start_pct;
+  qc.append(el("div", "sub", startPct != null && q.monthly ? `burned ${(q.monthly.percent - startPct).toFixed(0)} pts since start (${startPct}%)` : ""));
+  top.append(qc);
+  const g = r.gateway || {};
+  const cache = g.prompt ? Math.round(100 * g.cached / g.prompt) : 0;
+  top.append(stat("Gateway", `$${(key.spend_usd ?? 0).toFixed(2)}`, `of $${key.limit_usd ?? "–"} key · ${fmt(g.requests)} req · ${g.errors || 0} err`,
+    el("div", "sub", `${fmt(g.prompt)} in (${cache}% cached) · ${fmt(g.completion)} out`)));
+}
+
+function renderAgents(s) {
+  const box = $("agents"), open = new Set([...box.querySelectorAll(".agent.open")].map((e) => e.dataset.name));
+  const scroll = {}; box.querySelectorAll("pre[data-k]").forEach((p) => { scroll[p.dataset.k] = [p.scrollTop, p.scrollHeight - p.clientHeight - p.scrollTop < 8]; });
+  box.replaceChildren();
+  const ag = (s.runner || {}).agents || {};
+  for (const name of Object.keys(ag)) {
+    const a = ag[name], x = s.agents[name] || {}, idle = a.last_turn ? s.now - a.last_turn : null;
+    const state = a.fatal ? "bad" : a.paused ? "warn" : idle == null ? "warn" : idle > 180 ? "bad" : idle > 60 ? "warn" : "ok";
+    const card = el("div", "card agent" + (open.has(name) ? " open" : "")); card.dataset.name = name;
+    const head = el("div", "head"), left = el("div");
+    const dot = el("span", "dot " + state); dot.style.marginRight = "7px";
+    left.append(dot, el("span", "name", name));
+    head.append(left, el("span", "pill", a.model));
+    const st = el("div", "status" + (x.status ? "" : " empty"), x.status || (a.paused ? "paused by quota control" : "no status yet"));
+    const kv = el("div", "kv"); const cell = (t, v) => { const d = el("div", "", t); d.append(el("b", "", v)); return d; };
+    kv.append(cell("turns", fmt(a.turns)), cell("tool calls", fmt(a.tool_calls)), cell("errors", `${a.tool_errors}`),
+      cell("idle", idle == null ? "–" : dur(idle)), cell("ctx tokens", fmt(a.last_prompt)), cell("resets", `${a.shrinks}/${a.summaries}`));
+    const det = el("div", "detail");
+    det.append(el("h2", "", "notes"));
+    const notes = el("pre", "", x.notes || "(none)"); notes.dataset.k = name + "n"; det.append(notes);
+    det.append(el("h2", "", "recent log"));
+    const log = el("pre", "", (x.log || []).join("\n")); log.dataset.k = name + "l"; det.append(log);
+    card.append(head, st, kv, det);
+    card.onclick = (ev) => { if (ev.target.tagName !== "PRE") card.classList.toggle("open"); };
+    box.append(card);
+    for (const p of card.querySelectorAll("pre[data-k]")) {
+      const sc = scroll[p.dataset.k]; if (sc) p.scrollTop = sc[1] ? p.scrollHeight : sc[0]; else p.scrollTop = p.scrollHeight;
+    }
+  }
+}
+
+function renderResearch(s) {
+  const k = ((s.runner || {}).kpi) || {}, box = $("research"); box.replaceChildren();
+  box.append(el("div", "big", k.research || "idle"));
+  const bar = el("div", "bar ok"), i = el("i"); i.style.width = pct((k.progress || 0) * 100) + "%"; bar.append(i); box.append(bar);
+  box.append(el("div", "sub", `${Math.round((k.progress || 0) * 100)}% · ${k.done ?? 0} techs done · queue: ${(k.queue || []).join(" → ") || "empty"}`));
+}
+
+const PACKS = ["automation-science-pack", "logistic-science-pack", "chemical-science-pack", "production-science-pack", "utility-science-pack", "space-science-pack"];
+function renderProduced(s) {
+  const t = $("produced"); t.replaceChildren();
+  const k = ((s.runner || {}).kpi) || {}, p = k.produced || {}, hist = s.kpi_history || [];
+  const names = Object.keys(p).sort((a, b) => (PACKS.includes(b) - PACKS.includes(a)) || p[b] - p[a]);
+  if (!names.length) { const tr = el("tr"); tr.append(el("td", "", "nothing produced yet")); t.append(tr); return; }
+  for (const n of names) {
+    const tr = el("tr"), c3 = el("td"); c3.style.width = "90px";
+    c3.append(spark(hist.map((h) => (h.produced || {})[n] ?? 0)));
+    tr.append(el("td", "", n.replace(/-science-pack$/, " ⚗").replace(/-/g, " ")), el("td", "", fmt(p[n])), c3); t.append(tr);
+  }
+}
+
+function renderBase(s) {
+  const k = ((s.runner || {}).kpi) || {};
+  const b = $("buildings"); b.replaceChildren();
+  Object.entries(k.counts || {}).sort((a, c) => c[1] - a[1]).slice(0, 18).forEach(([n, v]) => { const c = el("span", "chip", n.replace(/-/g, " ") + " "); c.append(el("b", "", v)); b.append(c); });
+  const p = $("problems"); p.replaceChildren();
+  Object.entries(k.problems || {}).forEach(([n, v]) => { const c = el("span", "chip bad", n.replace(/_/g, " ") + " " + v); p.append(c); });
+  if (!p.children.length && Object.keys(k.counts || {}).length) p.append(el("span", "chip", "no machine problems"));
+}
+
+function renderFeed(s) {
+  const rows = [];
+  for (const [n, x] of Object.entries(s.agents || {})) for (const l of (x.log || []).slice(-14)) rows.push([l, n]);
+  rows.sort((a, c) => a[0] < c[0] ? -1 : 1);
+  const f = $("feed"), atBottom = f.scrollHeight - f.clientHeight - f.scrollTop < 30; f.replaceChildren();
+  for (const [l, n] of rows.slice(-60)) {
+    const d = el("div"), m = l.match(/^\S+ (\d\d:\d\d:\d\d),\d+ (.*)$/);
+    d.append(el("span", "t", (m ? m[1] : "") + " "), el("span", "a", n + " "), el("span", /ERROR/.test(l) ? "e" : "", m ? m[2] : l)); f.append(d);
+  }
+  if (atBottom) f.scrollTop = f.scrollHeight;
+}
+
+function renderCharts(s) {
+  const box = $("charts"); box.replaceChildren();
+  const hist = s.history || [], kh = s.kpi_history || [];
+  const add = (title, series, legend, opts) => {
+    const c = el("div", "card chart"); c.append(el("h2", "", title), lineChart(series, opts));
+    const lg = el("div", "legend"); legend.forEach(([col, t]) => { const sp = el("span"); const i = el("i"); i.style.background = col; sp.append(i, t); lg.append(sp); }); c.append(lg); box.append(c);
+  };
+  add("OpenCode monthly %", [{ color: "var(--blue)", points: hist.map((h) => [h.ts, h.monthly]) }], [["var(--blue)", "monthly used"]]);
+  add("Gateway spend $", [{ color: "var(--violet)", points: hist.map((h) => [h.ts, h.spend]) }], [["var(--violet)", "this key"]], { min: 0 });
+  add("Agent turns (all)", [{ color: "var(--ok)", points: hist.map((h) => [h.ts, h.turns]) }], [["var(--ok)", "cumulative turns"]], { min: 0 });
+  add("Tool errors", [{ color: "var(--bad)", points: hist.map((h) => [h.ts, h.tool_errors]) }], [["var(--bad)", "cumulative"]], { min: 0 });
+  add("Techs researched", [{ color: "var(--acc)", points: kh.map((h, i) => [i, h.done]) }], [["var(--acc)", "done"]], { min: 0 });
+  add("Buildings", [{ color: "var(--blue)", points: kh.map((h, i) => [i, h.bld]) }], [["var(--blue)", "entities of the force"]], { min: 0 });
+}
+
+function render(s) {
+  renderTop(s); renderAgents(s); renderResearch(s); renderProduced(s); renderBase(s); renderCharts(s); renderFeed(s);
+  const b = $("board"); b.textContent = s.board || "(coach has not written a board yet)";
+  const age = s.runner_age;
+  const stale = age == null || age > 90;
+  $("updated").textContent = "runner " + (age == null ? "no data" : Math.round(age) + "s ago");
+  $("updated").classList.toggle("stale", stale);
+}
+
+/* ---------- transport: SSE with polling fallback ---------- */
+let last = null, es = null, pollTimer = null;
+const setConn = (cls, text) => { $("conn").className = "dot " + cls; $("connText").textContent = text; };
+function startPolling() {
+  if (pollTimer) return;
+  const tick = async () => { try { const r = await fetch("/api/state", { cache: "no-store" }); last = await r.json(); render(last); setConn("warn", "polling"); } catch (e) { setConn("bad", "offline"); } };
+  tick(); pollTimer = setInterval(tick, 4000);
+}
+function connect() {
+  if (!window.EventSource) return startPolling();
+  es = new EventSource("/events");
+  es.onopen = () => setConn("ok", "live");
+  es.onmessage = (m) => { try { last = JSON.parse(m.data); render(last); setConn("ok", "live"); } catch (e) { console.error("bad frame", e); } };
+  es.onerror = () => { setConn("bad", "reconnecting"); if (es.readyState === EventSource.CLOSED) { es.close(); setTimeout(connect, 3000); } };
+}
+connect();
+</script>
+</body>
+</html>
