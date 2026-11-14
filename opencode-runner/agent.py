@@ -69,13 +69,20 @@ def _slim(node):
     return out
 
 
-def _short_desc(d: str, limit: int = 260) -> str:
+def _short_desc(d: str, limit: int = 260, tail_limit: int = 120) -> str:
+    """Shrink a tool description for the schema. The last clause usually holds the argument caveats
+    (e.g. analyze_factory "(no x/y)"), so a short final clause is kept after the cut."""
     d = " ".join((d or "").split())
     if len(d) <= limit:
         return d
     cut = d[:limit]
     i = max(cut.rfind(". "), cut.rfind("; "))
-    return (cut[: i + 1] if i > 80 else cut.rstrip()) + " (tool_help for more)"
+    head = cut[: i + 1] if i > 80 else cut.rstrip()
+    j = max(d[:-1].rfind(". "), d[:-1].rfind("; "))
+    tail = d[j + 2:] if j >= 0 else ""
+    if tail and len(tail) <= tail_limit and j + 2 > len(head):
+        head = f"{head} ... {tail}"
+    return head + " (tool_help for more)"
 
 
 LOCAL_TOOLS = [

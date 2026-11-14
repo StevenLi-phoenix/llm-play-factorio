@@ -26,7 +26,8 @@ from prompts import COACH_SYSTEM, check_templates
 log = logging.getLogger("runner")
 
 # Pacing and cadence tunables (seconds unless noted).
-KPI_EVERY = 60                  # RCON KPI sample + game-speed enforcement
+COACH_MAX_TOKENS = 4000         # 12 of 23 coach replies hit 2500 (all reasoning, no board text) on 2026-11-14
+KPI_EVERY = 60                 # RCON KPI sample + game-speed enforcement
 QUOTA_EVERY = 120               # gateway quota poll
 REPORT_EVERY = 30               # runner.json rewrite
 HISTORY_EVERY = 60              # history.jsonl row for the dashboard charts
@@ -283,7 +284,7 @@ class Supervisor:
             lines.append("notes: " + (nf.read_text()[:1200] if nf.exists() else "(none)"))
         prev = (self.root / "board.md")
         lines.append("--- previous board:\n" + (prev.read_text()[:2500] if prev.exists() else "(none)"))
-        r = await self.gw.chat(agent="coach", model=self.coach_model, session="coach", tools=None, max_tokens=2500,
+        r = await self.gw.chat(agent="coach", model=self.coach_model, session="coach", tools=None, max_tokens=COACH_MAX_TOKENS,
                                messages=[{"role": "system", "content": COACH_SYSTEM}, {"role": "user", "content": "\n".join(lines)}])
         text = (r["choices"][0]["message"].get("content") or "").strip()
         if text:

@@ -19,6 +19,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
 ### Fixed
+- Short tool descriptions keep the final caveat clause (`analyze_factory` "no x/y"), which stops the repeated "unknown argument(s) x, y" errors (28 so far).
+- Coach reply limit raised 2500 → 4000 tokens (12 of 23 replies were cut before any board text); worker prompt asks for batched calls and no hand-counting of ASCII grids (293 worker replies were cut at max_tokens).
 - `run_plan` failures now start with the failed job and its detail instead of the misleading "Plan queued" header.
 - Burn control no longer pauses a worker on integer-percent noise: it needs a 3 h sample span, discounts one rounding point, and reloads samples from `history.jsonl` after a restart (w4 had been paused at 62->63%).
 - A reply cut at the output limit gets a dedicated nudge (and is counted as `cut` in agent metrics) instead of the generic one.

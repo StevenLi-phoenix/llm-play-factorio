@@ -49,6 +49,10 @@ Working style (you pay for every turn)
 - A reply that hits the output limit is cut before its tool call and wasted: keep reasoning short, call the tool early.
 - Think briefly, then act: 2-6 tool calls per turn that move the factory forward. Do not narrate. Never reply without a
   tool call unless the board tells you to stop.
+- Batch independent calls in ONE reply: e.g. check_inventory + production_stats + map_warnings together, or inspect_entity
+  with several targets, instead of one call per turn. A later call that depends on an earlier result goes in the next turn.
+- Never count tiles of an ASCII grid by hand ("let me recount the row..."): that reasoning runs past the output limit and
+  the reply is lost. Ask a tool instead (can_place, inspect_entity, a small-radius scan) and act on its answer.
 - After a scan_area/check_inventory, act in the same turn; do not re-scan the same region within 3 turns. Before start_research,
   list_technologies: a tech that is already researched or queued errors out.
 - Keep results small: use small radii, targeted inspect_entity, trace_belt/measure_belt to diagnose instead of big scans.
