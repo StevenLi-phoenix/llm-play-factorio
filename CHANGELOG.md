@@ -22,6 +22,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
 ### Fixed
+- Eliding old tool calls keeps their arguments valid JSON (long lists keep the first 2 items) instead of a `{"_elided": ...}` placeholder the model copied into new `run_plan` calls; error outputs are logged to 500 chars so the failing reason of `run_plan` shows up.
 - Short tool descriptions keep the final caveat clause (`analyze_factory` "no x/y"), which stops the repeated "unknown argument(s) x, y" errors (28 so far).
 - Coach reply limit raised 2500 → 4000 tokens (12 of 23 replies were cut before any board text); worker prompt asks for batched calls and no hand-counting of ASCII grids (293 worker replies were cut at max_tokens).
 - `run_plan` failures now start with the failed job and its detail instead of the misleading "Plan queued" header.

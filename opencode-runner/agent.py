@@ -14,7 +14,8 @@ from factorio_mcp.server import build_app
 from llm import Gateway, GatewayBadRequest, GatewayFatal
 from prompts import COMPACT_PROMPT, NUDGE, NUDGE_CUT, START_MSG, WORKER_SYSTEM
 
-KEEP_TAIL = 14            # messages never elided
+LOG_OK_CHARS, LOG_ERR_CHARS = 160, 500   # tool output chars logged; errors keep the failing reason
+KEEP_TAIL = 14           # messages never elided
 HIGH_TOKENS = 42_000      # prompt tokens that trigger a shrink
 MAX_RESULT_CHARS = 5_500  # per tool result
 MAX_TOOL_CALLS_PER_TURN = 8
@@ -83,6 +84,18 @@ def _short_desc(d: str, limit: int = 260, tail_limit: int = 120) -> str:
     if tail and len(tail) <= tail_limit and j + 2 > len(head):
         head = f"{head} ... {tail}"
     return head + " (tool_help for more)"
+
+
+def compact_args(a: str, keep: int = 2) -> str:
+    """Shrink old tool-call arguments while keeping them valid JSON of the same shape (long lists keep their
+    first `keep` items). A `{"_elided": ...}` placeholder used to be copied by the model into new calls."""
+    try:
+        obj = json.loads(a)
+    except json.JSONDecodeError:
+        return a
+    if not isinstance(obj, dict):
+        return a
+    return json.dumps({k: (v[:keep] if isinstance(v, list) and len(v) > keep else v) for k, v in obj.items()})
 
 
 LOCAL_TOOLS = [
@@ -219,7 +232,7 @@ class Agent:
                 for tc in msg.get("tool_calls") or []:
                     a = tc["function"].get("arguments") or ""
                     if len(a) > 500:
-                        tc["function"]["arguments"] = json.dumps({"_elided": a[:300]})
+                        tc["function"]["arguments"] = compact_args(a)
         self.m["shrinks"] += 1
 
     def _est_tokens(self) -> int:
@@ -339,7 +352,8 @@ class Agent:
                     self.m["tool_errors"] += 1
                 self.last_tools.append(name)
                 self.history.append({"role": "tool", "tool_call_id": c["id"], "content": out})
-                self.log.info("T%d %s(%s) -> %s", self.m["turns"], name, c["function"].get("arguments", "")[:140], out[:160].replace("\n", " | "))
+                self.log.info("T%d %s(%s) -> %s", self.m["turns"], name, c["function"].get("arguments", "")[:140],
+                          out[:LOG_ERR_CHARS if out.startswith("ERROR") else LOG_OK_CHARS].replace("\n", " | "))
             self.log.info("T%d prompt=%s completion=%s ms=%s", self.m["turns"], u.get("prompt_tokens"), u.get("completion_tokens"), r.get("_ms"))
             self.write_metrics()
             if self.m["last_prompt"] > self.cfg.high_tokens:
