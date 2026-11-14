@@ -24,7 +24,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - Runner fails fast at startup when a prompt template has stray braces (`check_templates`, test in `opencode-runner/tests`).
 
 ### Changed
-- Trial: `LLM_EXTRA_BODY={"reasoning_effort":"low"}` on all agents (baseline: 365 turns/h, 1766 completion tokens/request, +4 techs/h); revert by deleting the line in `factorio-agents.service`.
+- All agents run with `LLM_EXTRA_BODY={"reasoning_effort":"low"}`: ~965 vs ~376 requests/h, median completion 934 tokens, truncated replies 6.6% -> 1.7%, ~+6 techs/h vs +4, and the monthly quota burn stayed ~1%/h. Revert by deleting the line in `factorio-agents.service`.
 - Fourth worker (w4) added: monthly quota burn was ~0.8%/h, leaving ~15-25% unspent at the deadline.
 - opencode-runner: pacing/cadence magic numbers are named constants; `Agent` exposes `paused`/`pause`/`resume`/`summary_row` instead of the supervisor reading its internals.
 - Mod and docker config target Factorio 2.1 (fluidbox, underground neighbours, array categories, `crafter_input`).
