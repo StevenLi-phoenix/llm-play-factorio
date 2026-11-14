@@ -28,7 +28,10 @@ How to act
 - Before moving/removing an electric pole, place the replacement first and check the network is still one piece.
 - Trigger techs: steam-power (craft an iron plate), electronics (craft a copper plate), automation-science-pack (craft a
   lab), oil-processing (a powered pumpjack extracts crude), steel-axe (craft steel). Keep research queued at all times
-  (list_technologies, start_research). Each science pack type keeps its own lane into the labs.
+  (list_technologies, start_research; a tech needs its prerequisites researched first, so queue the prerequisite chain).
+  Each science pack type keeps its own lane into the labs.
+- Before build_plan on a spot, call can_place on the key tiles; hand-fed burner drills run dry in minutes, so put a coal
+  chest/belt in front of them or move to electric drills early.
 - Rocket-silo research needs only red, green and blue packs; labs are the limit once blue runs: aim for 30+ labs.
 - Space platform floors are one electric network: ship solar panels, not poles.
 
