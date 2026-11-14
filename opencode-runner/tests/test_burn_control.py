@@ -22,7 +22,7 @@ class FakeAgent:
 
 def _sup(samples, hours_left=30.0):
     agents = [FakeAgent(f"w{i}") for i in range(1, 5)]
-    return SimpleNamespace(deadline=time.time() + hours_left * 3600, samples=samples, agents=agents, paused_reason={})
+    return SimpleNamespace(deadline=time.time() + hours_left * 3600, samples=samples, agents=agents, paused_reason={}, burn_changed_at=0.0)
 
 
 def test_short_span_is_ignored():
@@ -55,3 +55,38 @@ def test_resumes_when_underspending():
     s.paused_reason = {"w4": "burn control"}
     run.Supervisor.control_burn(s, 60)
     assert not s.agents[3].paused and s.paused_reason == {}
+
+
+def test_resume_releases_one_agent_at_a_time():
+    now = time.time()
+    s = _sup([(now - 4 * 3600 + i * 3000, 60) for i in range(5)])
+    for a in s.agents[2:]:
+        a.paused = True
+    s.paused_reason = {"w3": "burn control", "w4": "burn control"}
+    run.Supervisor.control_burn(s, 60)
+    assert [a.paused for a in s.agents] == [False, False, False, True]
+    assert s.paused_reason == {"w4": "burn control"}
+
+
+def test_samples_before_the_last_change_are_ignored():
+    """After a pause the 6 h average still holds the old high burn; only samples since the change count."""
+    now = time.time()
+    old = [(now - 7 * 3600 + i * 600, 40 + i // 6) for i in range(12)]             # fast burn before the change
+    new = [(now - 3.5 * 3600 + i * 3000, 55) for i in range(5)]                    # flat since the change
+    s = _sup(old + new)
+    s.burn_changed_at = now - 3.6 * 3600
+    s.agents[3].paused = True
+    s.paused_reason = {"w4": "burn control"}
+    run.Supervisor.control_burn(s, 55)
+    assert not s.agents[3].paused
+    assert s.burn_changed_at > now - 5            # the resume is itself a change
+
+
+def test_hold_after_a_change_until_enough_samples():
+    now = time.time()
+    s = _sup([(now - 1 * 3600 + i * 600, 50) for i in range(6)])
+    s.burn_changed_at = now - 1.1 * 3600
+    s.agents[3].paused = True
+    s.paused_reason = {"w4": "burn control"}
+    run.Supervisor.control_burn(s, 50)
+    assert s.agents[3].paused

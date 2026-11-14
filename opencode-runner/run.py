@@ -36,7 +36,7 @@ BURN_EVERY = 15 * 60            # burn-control evaluation interval
 BURN_MIN_HOURS = 3.0            # minimum sample span before burn control acts (the percent is an integer: short spans exaggerate the rate)
 SAMPLE_WINDOW = 6 * 3600        # quota samples kept for the burn-rate estimate
 ROLLING_HOT, ROLLING_RESUME, WEEKLY_HOT = 92, 70, 98   # percent thresholds that pause / resume all agents
-BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.6      # projected/remaining ratios that pause / resume one agent
+BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.8      # projected/remaining ratios that pause / resume one agent
 AGENT_STAGGER = 15              # start workers this many seconds apart
 COACH_FIRST_WAIT = 20 * 60      # first coach run no later than this
 TREND_WINDOW = 30 * 60          # span of the coach's trend line
@@ -103,6 +103,7 @@ class Supervisor:
         self.deadline = parse_iso(e["DEADLINE"]) if e.get("DEADLINE") else None
         self.stop = asyncio.Event()
         self.quota: dict | None = None
+        self.burn_changed_at = 0.0     # time of the last burn-control pause/resume; the rate uses samples after it
         self.samples: list[tuple[float, int]] = self._load_samples()   # (ts, monthly percent); survives restarts
         self.kpi: dict | None = None
         self.kpi_hist: collections.deque = collections.deque(maxlen=KPI_HISTORY)   # (wall ts, kpi) for trend lines
@@ -218,10 +219,13 @@ class Supervisor:
 
     def control_burn(self, pct: int) -> None:
         """Keep monthly burn on track to land at ~100% at the deadline: pause/resume agents."""
-        if not self.deadline or len(self.samples) < 4:
+        # Only samples since the last pause/resume count: the 6 h average still holds the old burn and
+        # would keep a paused agent paused for hours (3 active agents ended near 93% of the quota).
+        samples = [s for s in self.samples if s[0] >= self.burn_changed_at]
+        if not self.deadline or len(samples) < 4:
             return
         hours_left = max((self.deadline - now()) / 3600, 0.05)
-        t0, p0 = self.samples[0]
+        t0, p0 = samples[0]
         span = (now() - t0) / 3600
         if span < BURN_MIN_HOURS:
             return
@@ -236,12 +240,14 @@ class Supervisor:
             a = active[-1]
             a.pause()
             self.paused_reason[a.name] = "burn control"
+            self.burn_changed_at = now()
             log.warning("burn control: pausing %s", a.name)
         elif projected < remaining * BURN_RESUME_FACTOR:
             for a in self.agents:
                 if self.paused_reason.get(a.name) == "burn control":
                     del self.paused_reason[a.name]
                     a.resume()
+                    self.burn_changed_at = now()
                     log.info("burn control: resuming %s", a.name)
                     break
 
