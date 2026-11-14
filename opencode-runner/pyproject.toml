@@ -1,0 +1,12 @@
+[project]
+name = "opencode-runner"
+version = "0.1.0"
+description = "opencode-go LLM agents driving factorio-mcp characters, paced to the OpenCode quota"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27", "factorio-mcp"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+factorio-mcp = { path = "../factorio-mcp", editable = true }

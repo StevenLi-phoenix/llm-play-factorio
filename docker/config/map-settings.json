@@ -14,7 +14,6 @@
     "pollution_with_max_forest_damage": 150,
     "pollution_per_tree_damage": 50,
     "pollution_restored_per_tree_damage": 10,
-    "max_pollution_to_restore_trees": 20,
     "enemy_attack_pollution_consumption_modifier": 1
   },
   "enemy_evolution": {
@@ -36,7 +35,10 @@
     "settler_group_min_size": 5,
     "settler_group_max_size": 20,
     "min_expansion_cooldown": 14400,
-    "max_expansion_cooldown": 216000
+    "max_expansion_cooldown": 216000,
+    "min_expansion_distance": 3,
+    "evolution_group_size_factor": 8.0,
+    "build_base_unit_dispatch_cooldown": 1800
   },
   "unit_group": {
     "min_group_gathering_time": 3600,
@@ -52,20 +54,6 @@
     "tick_tolerance_when_member_arrives": 60,
     "max_gathering_unit_groups": 30,
     "max_unit_group_size": 200
-  },
-  "steering": {
-    "default": {
-      "radius": 1.2,
-      "separation_force": 0.005,
-      "separation_factor": 1.2,
-      "force_unit_fuzzy_goto_behavior": false
-    },
-    "moving": {
-      "radius": 3,
-      "separation_force": 0.01,
-      "separation_factor": 3,
-      "force_unit_fuzzy_goto_behavior": false
-    }
   },
   "path_finder": {
     "fwd2bwd_ratio": 5,
