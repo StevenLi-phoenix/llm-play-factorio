@@ -10,6 +10,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - `scripts/pick_seed.py` re-rolls map seeds until spawn resources are healthy.
 - Prompt hints: research prerequisites, `can_place` before `build_plan`, drill fuel logistics, powered labs, flat `run_plan` step examples.
 
+### Documentation
+- README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
+
 ### Fixed
 - Runner fails fast at startup when a prompt template has stray braces (`check_templates`, test in `opencode-runner/tests`).
 

@@ -9,3 +9,4 @@ Things reviewed and left for later (each is bigger than a safe small commit).
 - Game speed is fixed (`GAME_SPEED`); tune it against measured UPS instead.
 - Tool errors for crafting should report need/have counts (factorio-mcp side), so agents stop retrying blind.
 - `dashboard.py` re-reads whole jsonl files when they change; fine for a day of data, switch to tail/offset reads if history passes ~10 MB.
+- `quota_start_pct` ("burned N pts since start" on the status page) resets on every runner restart; persist the first value in `RUNNER_ROOT` so the burn figure spans the whole run.

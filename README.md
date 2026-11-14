@@ -1,5 +1,7 @@
 # llm-play-factorio
 
+![status page of the OpenCode Go run](docs/dashboard.png)
+
 LLM agents play Factorio 2.0.77 in real time on a random map under fixed rules. Each agent controls one
 character through [factorio-mcp](factorio-mcp/) (MCP server / CLI → RCON → Lua mod). A planner agent with no
 character coordinates the workers through a shared board.
@@ -38,6 +40,7 @@ There are two kinds of run:
 | `docker/compose.run.yml` | play server for a run (frozen mod copy), ports 34199/udp, RCON 127.0.0.1:27017; `DLC_SPACE_AGE=true` turns Space Age on |
 | `docker/config/` | server, map-gen (no enemies / peaceful biters for Space Age, random seed) and map settings templates |
 | `factorio-mcp/` | vendored fork (git subtree) of linsyking/factorio-mcp; `route/` is GPL-3.0-or-later |
+| `opencode-runner/` | supervisor + LLM workers + coach for the `ssh server` run on OpenCode Go (quota-paced), realtime status page, systemd units |
 | `lpf/` | schematic renderer (live area / plan / blueprint → PNG + legend), blueprint codec, simulator |
 | `scripts/` | `start_run.sh`, `fa` (agent CLI), `rcon.py`, `research.py`, `kpi.py`, `park_character.py`, `timelapse.py`, `dump_prototypes.sh` |
 | `docs/` | lessons per run, Space Age tooling notes, simulator design, run 4 record (playbook, board, ledger) |
@@ -57,6 +60,12 @@ docker/compose.run.yml start`). It loads `runtime/run/factorio/saves/llm-run.zip
 
 To watch, join `localhost:34199` with a 2.0.77 client that has `dist/factorio-mcp_<version>.zip` in its
 mods folder, and the Space Age mods set to match the run.
+
+## Server run on OpenCode Go (Factorio 2.1)
+`opencode-runner/` drives N workers (`WORKER_MODELS`) and a coach through the gateway, paced to the OpenCode quota and
+stopping at the monthly reset. It runs as systemd user units on the server (`factorio`, `factorio-agents`,
+`factorio-dashboard`); the status page is `http://server:8787/`. Status: `python3 opencode-runner/report.py --oneline`
+on the server. Design notes and open items: [docs/opencode-runner-notes.md](docs/opencode-runner-notes.md).
 
 ## Recording
 Headless Factorio cannot create replay-enabled saves, so vanilla replays aren't used. Instead:
