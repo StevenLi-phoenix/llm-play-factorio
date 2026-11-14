@@ -30,8 +30,9 @@ class GatewayBadRequest(Exception):
 
 
 class Gateway:
-    def __init__(self, base: str, key: str, raw_dir: Path):
+    def __init__(self, base: str, key: str, raw_dir: Path, extra_body: dict | None = None):
         self.base = base.rstrip("/")
+        self.extra_body = dict(extra_body or {})   # merged into every request; dropped for good if the gateway rejects it
         self.key = key
         self.raw_dir = raw_dir
         raw_dir.mkdir(parents=True, exist_ok=True)
@@ -53,6 +54,8 @@ class Gateway:
             body["tool_choice"] = tool_choice
         if temperature is not None:
             body["temperature"] = temperature
+        sent_extra = dict(self.extra_body)
+        body.update(sent_extra)
         headers = {"Authorization": f"Bearer {self.key}", "content-type": "application/json", "x-session-key": session}
         delay = 3.0
         for attempt in range(1, 9):
@@ -91,6 +94,12 @@ class Gateway:
                 log.warning("%s: HTTP %d, retry in %.0fs (attempt %d) %s", agent, r.status_code, wait, attempt, r.text[:160])
                 await asyncio.sleep(min(wait, 300) + random.random())
                 delay = min(delay * 2, 120)
+                continue
+            if self.extra_body and any(k in r.text for k in sent_extra):   # the 400 names one of our extra keys
+                log.warning("%s: HTTP %d with extra body %s; dropping it for this process: %s", agent, r.status_code, sent_extra, r.text[:200])
+                self.extra_body = {}
+                for k in sent_extra:
+                    body.pop(k, None)
                 continue
             raise GatewayBadRequest(r.status_code, r.text)
         raise RuntimeError("gateway: gave up after 8 attempts")

@@ -2,7 +2,7 @@
 keeps the game at the target speed, and stops at the deadline (the OpenCode monthly reset) or when quota is gone.
 
 Env: RUNNER_ROOT, FACTORIO_RCON_PORT/PASSWORD, LLMGW_API_KEY (+LLMGW_BASE), WORKER_MODELS (comma list, one per worker),
-COACH_MODEL, DEADLINE (ISO UTC; default = the monthly resetsAt seen at start), GAME_SPEED, COACH_MINUTES.
+COACH_MODEL, LLM_EXTRA_BODY (JSON merged into every chat request, e.g. {"reasoning_effort":"low"}), DEADLINE (ISO UTC; default = the monthly resetsAt seen at start), GAME_SPEED, COACH_MINUTES.
 """
 from __future__ import annotations
 
@@ -85,7 +85,8 @@ class Supervisor:
         self.root.mkdir(parents=True, exist_ok=True)
         self.rcon = dict(host=e.get("FACTORIO_RCON_HOST", "127.0.0.1"), port=int(e.get("FACTORIO_RCON_PORT", "27017")),
                          pw=e["FACTORIO_RCON_PASSWORD"])
-        self.gw = Gateway(e.get("LLMGW_BASE", "https://api.lishuyu.app/llm"), e["LLMGW_API_KEY"], self.root / "raw")
+        self.gw = Gateway(e.get("LLMGW_BASE", "https://api.lishuyu.app/llm"), e["LLMGW_API_KEY"], self.root / "raw",
+                          extra_body=json.loads(e.get("LLM_EXTRA_BODY") or "{}"))
         models = [m.strip() for m in e.get("WORKER_MODELS", "deepseek-v4.1-flash").split(",") if m.strip()]
         cfg = RunCfg(root=self.root, rcon_host=self.rcon["host"], rcon_port=self.rcon["port"], rcon_password=self.rcon["pw"],
                      high_tokens=int(e.get("HIGH_TOKENS", str(HIGH_TOKENS))))

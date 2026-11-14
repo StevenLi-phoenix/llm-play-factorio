@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased] - 2026-11-14
 
 ### Added
+- `LLM_EXTRA_BODY` (JSON) merged into every gateway request, e.g. `{"reasoning_effort":"low"}`; dropped automatically if the gateway rejects it. Off by default.
 - opencode-runner: supervisor, per-character LLM agents, coach, quota-paced burn control, `report.py --oneline`.
 - Read-only realtime status page (SSE) and history sampling; systemd user units for factorio, agents, dashboard.
 - `scripts/pick_seed.py` re-rolls map seeds until spawn resources are healthy.
