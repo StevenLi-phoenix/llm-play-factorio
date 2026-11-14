@@ -223,11 +223,13 @@ class Supervisor:
         # would keep a paused agent paused for hours (3 active agents ended near 93% of the quota).
         samples = [s for s in self.samples if s[0] >= self.burn_changed_at]
         if not self.deadline or len(samples) < 4:
+            log.info("burn: holding, %d samples since the last change (need 4)", len(samples))
             return
         hours_left = max((self.deadline - now()) / 3600, 0.05)
         t0, p0 = samples[0]
         span = (now() - t0) / 3600
         if span < BURN_MIN_HOURS:
+            log.info("burn: holding, span %.1fh since the last change (need %.1fh)", span, BURN_MIN_HOURS)
             return
         rate = (pct - p0) / span                       # percent per hour (coarse: 1% resolution)
         rate_low = max(pct - p0 - 1, 0) / span         # discount one rounding point: pause only if overspending even then
