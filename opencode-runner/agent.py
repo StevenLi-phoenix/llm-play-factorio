@@ -15,7 +15,7 @@ from llm import Gateway, GatewayBadRequest, GatewayFatal
 from prompts import COMPACT_PROMPT, NUDGE, NUDGE_CUT, START_MSG, WORKER_SYSTEM
 
 LOG_OK_CHARS, LOG_ERR_CHARS = 160, 500   # tool output chars logged; errors keep the failing reason
-KEEP_TAIL = 14           # messages never elided
+KEEP_TAIL = 14            # messages never elided
 HIGH_TOKENS = 42_000      # prompt tokens that trigger a shrink
 MAX_RESULT_CHARS = 5_500  # per tool result
 MAX_TOOL_CALLS_PER_TURN = 8
@@ -222,7 +222,7 @@ class Agent:
     # ---------- context management ----------
     def _elide(self) -> None:
         cut = len(self.history) - KEEP_TAIL
-        for i, msg in enumerate(self.history[:max(cut, 0)]):
+        for msg in self.history[:max(cut, 0)]:
             if msg["role"] == "tool" and len(msg["content"]) > 300:
                 msg["content"] = msg["content"][:260] + " ...[elided]"
             elif msg["role"] == "assistant":
@@ -353,7 +353,7 @@ class Agent:
                 self.last_tools.append(name)
                 self.history.append({"role": "tool", "tool_call_id": c["id"], "content": out})
                 self.log.info("T%d %s(%s) -> %s", self.m["turns"], name, c["function"].get("arguments", "")[:140],
-                          out[:LOG_ERR_CHARS if out.startswith("ERROR") else LOG_OK_CHARS].replace("\n", " | "))
+                              out[:LOG_ERR_CHARS if out.startswith("ERROR") else LOG_OK_CHARS].replace("\n", " | "))
             self.log.info("T%d prompt=%s completion=%s ms=%s", self.m["turns"], u.get("prompt_tokens"), u.get("completion_tokens"), r.get("_ms"))
             self.write_metrics()
             if self.m["last_prompt"] > self.cfg.high_tokens:
