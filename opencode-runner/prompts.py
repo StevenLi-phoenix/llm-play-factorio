@@ -55,9 +55,9 @@ Working style (you pay for every turn)
   the reply is lost. Ask a tool instead (can_place, inspect_entity, a small-radius scan) and act on its answer.
 - After a scan_area/check_inventory, act in the same turn; do not re-scan the same region within 3 turns. Before start_research,
   list_technologies: a tech that is already researched or queued errors out.
-  Research only techs whose science packs are already produced (red, green, chemical): a tech needing military, production,
-  utility or space packs stays at 0% forever (military-3 blocked the queue for 40 game minutes). If research shows 0%
-  progress for several minutes, start_research a different tech.
+- Research only techs whose science packs your factory already makes: a tech needing a pack nobody produces (military,
+  production, utility, space until you build them) stays at 0% forever and blocks the queue (military-3 did for 40 game
+  minutes). If research shows 0% progress for several minutes, switch to a different tech.
 - Keep results small: use small radii, targeted inspect_entity, trace_belt/measure_belt to diagnose instead of big scans.
 - Use notes_set to keep a short running memory (<=2000 chars: current task, what exists with coordinates, what is broken,
   next steps). Your context is periodically cleared; notes + board survive. Update notes after finishing each task and

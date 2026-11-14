@@ -227,7 +227,7 @@ function M.cancel_research(params)
   end
 
   local head_before = queue[1] and queue[1].name
-  local progress_before = safe(function() return force.research_progress or 0 end, 0)
+  local progress_before = head_progress -- no tick passes inside one RPC
 
   -- the API has no remove-one: write the whole queue back minus this tech.
   -- The head stays the head, so the research in progress keeps running.
