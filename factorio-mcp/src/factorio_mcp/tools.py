@@ -718,7 +718,8 @@ def register(app: MCPServer, game: Game) -> None:
         return fmt.tech_tree(await game.call("list_technologies", p))
 
     @tool("Remove a technology from the research queue — queued, not-yet-started techs only (the research in progress "
-          "is refused: cancelling it would discard its progress). Returns the queue order after the removal.")
+          "is refused once it has progress; a head still under 1% can be removed, e.g. one that needs a science pack nobody "
+          "makes and blocks the queue). Returns the queue order after the removal.")
     async def cancel_research(technology: str) -> str:
         r = await game.call("cancel_research", {"technology": technology})
         q = ", ".join(as_list(r.get("queue"))) or "empty"

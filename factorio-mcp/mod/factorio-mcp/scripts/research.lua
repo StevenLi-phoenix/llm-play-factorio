@@ -6,11 +6,14 @@
 --   unlocked-but-unresearched set was invisible and leverage techs sat
 --   undeveloped while the queue ran the critical path.
 -- cancel_research: remove a QUEUED, not-yet-started technology from the
---   queue. The head — the research in progress — is refused: cancelling it
---   would discard its progress.
+--   queue. The head — the research in progress — is refused once it has
+--   progress (under 1% it is allowed: a head waiting for a pack nobody
+--   makes would otherwise block the whole queue).
 local companion = require("scripts.companion")
 
 local M = {}
+
+local STUCK_HEAD_PROGRESS = 0.01 -- a head below this fraction may be cancelled
 
 local function force_of_caller()
   local c = companion.get()
@@ -199,9 +202,12 @@ function M.cancel_research(params)
     local cr = force.current_research
     return cr and cr.name
   end, nil)
-  if current_name == name then
+  -- a head still at ~0% has nothing to discard: it is stuck (e.g. it needs a science pack nobody
+  -- makes) and would block every tech queued behind it
+  local head_progress = safe(function() return force.research_progress or 0 end, 0)
+  if current_name == name and head_progress > STUCK_HEAD_PROGRESS then
     error(name .. " is the research in progress — cancelling it would discard its progress; "
-      .. "this removes queued, not-yet-started techs only")
+      .. "this removes queued, not-yet-started techs (or a head still under 1%) only")
   end
 
   local queue = {}

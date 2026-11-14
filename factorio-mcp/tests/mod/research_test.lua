@@ -146,6 +146,19 @@ do -- the research in progress is refused
     "in-progress tech refused with the reason")
 end
 
+do -- a head still at 0% (waiting for a pack nobody makes) has nothing to discard: it can be cancelled
+  game = { forces = { player = fresh_force({ t_logi2, t_oil }, t_logi2, 0) } }
+  local r = research.cancel_research({ technology = "logistics-2" })
+  check(r.removed == "logistics-2" and #r.queue == 1 and r.queue[1] == "oil-processing", "stuck 0% head removed")
+  game = { forces = { player = fresh_force({ t_logi2, t_oil }, t_logi2, 0.005) } }
+  r = research.cancel_research({ technology = "logistics-2" })
+  check(r.removed == "logistics-2", "a head under 1% counts as not started")
+  game = { forces = { player = fresh_force({ t_logi2, t_oil }, t_logi2, 0.05) } }
+  local e = err_of(function() research.cancel_research({ technology = "logistics-2" }) end)
+  check(e and e:find("discard its progress"), "a head at 5% is still refused")
+  game = { forces = { player = fresh_force() } }
+end
+
 do -- not queued / already researched / unknown
   local e = err_of(function() research.cancel_research({ technology = "steel-processing" }) end)
   check(e and e:find("not in the research queue"), "available tech is not in the queue")

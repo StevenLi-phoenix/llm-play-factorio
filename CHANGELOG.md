@@ -22,6 +22,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
 ### Fixed
+- `cancel_research` can remove a research head that is still under 1% (a head waiting for a pack nobody makes used to block the whole queue and could not be cancelled). Mod and tool text updated; takes effect with the next `factorio.service` restart.
 - Prompts tell workers and the coach to research only techs whose science packs are produced: military-3 (needs military packs nobody makes) sat at 0% for 40+ game minutes and blocked the queue.
 - Burn control rates only the samples since its last pause/resume (3 h hold after each change) and resumes below 0.8x of the remaining quota (was 0.6x over a 6 h average that kept paused agents paused: 3 active workers would have ended near 93%).
 - Eliding old tool calls keeps their arguments valid JSON (long lists keep the first 2 items) instead of a `{"_elided": ...}` placeholder the model copied into new `run_plan` calls; error outputs are logged to 500 chars so the failing reason of `run_plan` shows up.
