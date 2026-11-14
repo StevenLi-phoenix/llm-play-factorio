@@ -9,6 +9,7 @@ local companion = require("scripts.companion")
 local events = require("scripts.events")
 local items = require("scripts.items")
 local stats = require("scripts.stats")
+local names = require("scripts.names")
 
 local M = {}
 
@@ -79,12 +80,16 @@ function M.start(task)
         .. "chests): " .. missing)
     end
     local handcraftable = false
-    pcall(function() handcraftable = c.prototype.crafting_categories[r.category] == true end)
+    local cats = {}
+    pcall(function()
+      cats = names.sorted(r.categories)
+      handcraftable = names.intersects(c.prototype.crafting_categories, r.categories)
+    end)
     if handcraftable then
       error("can't craft " .. task.recipe .. " — not enough ingredients for its intermediates (the whole chain is "
         .. "checked); craftable now: " .. tostring(chainable))
     end
-    error("can't craft " .. task.recipe .. " — this recipe can't be crafted by hand (category " .. tostring(r.category) .. ")")
+    error("can't craft " .. task.recipe .. " — this recipe can't be crafted by hand (categories " .. table.concat(cats, ", ") .. ")")
   end
 
   local note = capped and string.format(" (capped at %d per job)", MAX_COUNT) or ""

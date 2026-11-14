@@ -73,15 +73,15 @@ function M.build(opts, x1, y1, x2, y2)
   if opts.fluid then
     for _, e in ipairs(surface.find_entities_filtered({ area = area })) do
       pcall(function()
-        local fb = e.fluidbox
-        if not fb or #fb == 0 then return end
+        local nfb = e.fluids_count or 0
+        if nfb == 0 then return end
         if e.type == "pipe-to-ground" then
           local i = idx(e.position.x, e.position.y)
           if i then g.ug[i] = e.name end
         end
         local src = idx(e.position.x, e.position.y)
-        for k = 1, #fb do
-          for _, c in ipairs(fb.get_pipe_connections(k)) do
+        for k = 1, nfb do
+          for _, c in ipairs(e.get_fluid_box_pipe_connections(k) or {}) do
             if c.connection_type ~= "underground" and c.target_position then
               local t = idx(c.target_position.x, c.target_position.y)
               if t then

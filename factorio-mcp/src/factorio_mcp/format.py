@@ -304,8 +304,8 @@ def _recipe_text(r: dict[str, Any]) -> str:
     bits = [f"recipe {f(r.get('ingredients'))} -> {f(r.get('products'))}"]
     if isinstance(r.get("energy"), (int, float)):
         bits.append(f"{r['energy']}s craft time")
-    if r.get("category"):
-        bits.append(f"category {r['category']}")
+    if r.get("categories") or r.get("category"):
+        bits.append(f"category {'/'.join(as_list(r.get('categories'))) or r['category']}")
     bits.append("unlocked" if r.get("enabled") else "not unlocked yet")
     return ", ".join(bits)
 
@@ -366,7 +366,7 @@ def prototype(name: str, p: dict[str, Any]) -> str:
     if it:
         bits = [f"stack size {it.get('stack_size')}"]
         if it.get("fuel_value_mj"):
-            bits.append(f"fuel value {num(it['fuel_value_mj'])} MJ ({it.get('fuel_category', 'chemical')})")
+            bits.append(f"fuel value {num(it['fuel_value_mj'])} MJ ({'/'.join(as_list(it.get('fuel_categories'))) or it.get('fuel_category', 'chemical')})")
         parts.append("item: " + ", ".join(bits))
     if p.get("entity"):
         parts.append(_entity_text(name, p["entity"]))

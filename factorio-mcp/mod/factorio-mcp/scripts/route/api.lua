@@ -75,9 +75,9 @@ local function resolve(c, spec, role, kind)
     return { belt = e, label = e.name }
   elseif port == "fluid" then
     local e = own_entity(c, pos, nil)
-    if not (e and e.fluidbox and #e.fluidbox > 0) then error(role .. ": no fluid entity of your force at that position") end
-    for k = 1, #e.fluidbox do
-      for _, conn in ipairs(e.fluidbox.get_pipe_connections(k)) do
+    if not (e and (e.fluids_count or 0) > 0) then error(role .. ": no fluid entity of your force at that position") end
+    for k = 1, e.fluids_count do
+      for _, conn in ipairs(e.get_fluid_box_pipe_connections(k) or {}) do
         if conn.connection_type ~= "underground" and conn.target_position and not conn.target then
           local tp = conn.target_position
           return { tile = { math.floor(tp.x), math.floor(tp.y) }, src = { math.floor(conn.position.x), math.floor(conn.position.y) },

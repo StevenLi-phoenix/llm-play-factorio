@@ -6,6 +6,7 @@ local companion = require("scripts.companion")
 local vision = require("scripts.vision")
 local placement = require("scripts.placement")
 local space = require("scripts.space")
+local names = require("scripts.names")
 
 local M = {}
 
@@ -78,11 +79,8 @@ end
 
 -- Sorted list of the keys of a {name = true} dictionary (nil when empty).
 local function sorted_keys(dict)
-  if type(dict) ~= "table" then return nil end
-  local keys = {}
-  for k in pairs(dict) do keys[#keys + 1] = k end
+  local keys = names.sorted(dict)
   if #keys == 0 then return nil end
-  table.sort(keys)
   return keys
 end
 
@@ -874,7 +872,7 @@ local function describe_recipe(rec, force)
     ingredients = ingredients,
     products = products,
     energy = rec.energy,
-    category = rec.category,
+    categories = names.sorted(rec.categories),
     enabled = (force_recipe and force_recipe.enabled) or false,
   }
 end
@@ -884,7 +882,7 @@ local function describe_item(it)
   local ok, v = pcall(function() return it.fuel_value end)
   if ok and type(v) == "number" and v > 0 then
     out.fuel_value_mj = v / 1e6
-    pcall(function() out.fuel_category = it.fuel_category end)
+    pcall(function() out.fuel_categories = names.sorted(it.fuel_categories) end)
   end
   pcall(function() if it.place_result then out.places = it.place_result.name end end)
   return out

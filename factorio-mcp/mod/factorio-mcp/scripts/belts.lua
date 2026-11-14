@@ -84,7 +84,7 @@ local UNIT = { [0] = { 0, -1 }, [4] = { 1, 0 }, [8] = { 0, 1 }, [12] = { -1, 0 }
 function M.underground_note(e)
   if not (e and e.valid and e.type == "underground-belt") then return nil end
   local input = e.belt_to_ground_type == "input"
-  local other = e.neighbours
+  local other = e.underground_belt_neighbour
   if other then
     return string.format("%s paired with the %s at (%.1f, %.1f)", input and "entrance" or "exit",
       input and "exit" or "entrance", other.position.x, other.position.y), true
@@ -107,9 +107,9 @@ function M.underground_note(e)
         elseif tin == input then
           return string.format("%s; %s is in between (two %ss can't pair; the one nearer the %s takes it)",
             text, what, input and "entrance" or "exit", want), false
-        elseif t.neighbours then
+        elseif t.underground_belt_neighbour then
           return string.format("%s; %s is already paired with the %s at (%.1f, %.1f), which is closer", text, what,
-            input and "entrance" or "exit", t.neighbours.position.x, t.neighbours.position.y), false
+            input and "entrance" or "exit", t.underground_belt_neighbour.position.x, t.underground_belt_neighbour.position.y), false
         end
       end
     end
@@ -120,7 +120,7 @@ end
 
 local function next_down(e)
   if e.type == "underground-belt" and e.belt_to_ground_type == "input" then
-    local n = e.neighbours
+    local n = e.underground_belt_neighbour
     if n then return { n } end
   end
   return e.belt_neighbours.outputs or {}
@@ -130,7 +130,7 @@ end
 -- input of a curve); other inputs are side-loads.
 local function next_up(e)
   if e.type == "underground-belt" and e.belt_to_ground_type == "output" then
-    local n = e.neighbours
+    local n = e.underground_belt_neighbour
     if n then return { n } end
   end
   local ins = e.belt_neighbours.inputs or {}

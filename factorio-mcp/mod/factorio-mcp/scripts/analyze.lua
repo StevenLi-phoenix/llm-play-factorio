@@ -71,8 +71,7 @@ local function missing_ingredients(e)
     local recipe = e.get_recipe()
     if not recipe then return end
     local missing = {}
-    local inv = e.get_inventory(defines.inventory.assembling_machine_input)
-      or e.get_inventory(defines.inventory.furnace_source)
+    local inv = e.get_inventory(defines.inventory.crafter_input)
     for _, ing in ipairs(recipe.ingredients) do
       local have = 0
       if ing.type == "item" then

@@ -35,8 +35,8 @@ local function fuel_car(c, car)
     local inserted = 0
     pcall(function()
       local proto = prototypes.item[item.name]
-      if proto.fuel_value and proto.fuel_value > 0
-        and proto.fuel_category and car.burner.fuel_categories[proto.fuel_category] then
+      -- can_insert respects the burner's fuel categories (fuel_category is gone on 2.1)
+      if proto.fuel_value and proto.fuel_value > 0 and car.burner.inventory.can_insert({ name = item.name, count = 1 }) then
         inserted = car.burner.inventory.insert({ name = item.name, count = math.min(item.count, 10) })
       end
     end)

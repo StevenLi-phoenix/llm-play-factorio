@@ -251,7 +251,7 @@ end
 local function unpaired_note(task)
   local notes = {}
   for _, e in ipairs(task._undergrounds or {}) do
-    if e.valid and not e.neighbours and #notes < 3 then
+    if e.valid and not e.underground_belt_neighbour and #notes < 3 then
       notes[#notes + 1] = string.format("the underground at (%.1f, %.1f) is an %s", e.position.x, e.position.y,
         belts.underground_note(e))
     end

@@ -5,6 +5,7 @@ local companion = require("scripts.companion")
 local vision = require("scripts.vision")
 local approach = require("scripts.actions.approach")
 local chat = require("scripts.chat")
+local names = require("scripts.names")
 local events = require("scripts.events")
 
 local M = {}
@@ -32,8 +33,8 @@ local function pick_fuel(c, burner, preferred)
       local ok = pcall(function()
         local proto = prototypes.item[item.name]
         local value = proto.fuel_value or 0
-        local cat = proto.fuel_category
-        if value > 0 and cat and categories[cat] and value > best_value then
+        local fits = names.intersects(categories, proto.fuel_categories)
+        if value > 0 and fits and value > best_value then
           best, best_value = item.name, value
         end
       end)

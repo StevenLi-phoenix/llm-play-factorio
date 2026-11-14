@@ -36,6 +36,8 @@ local INVENTORY_PROBES = {
   { "furnace_result", "output" },
   { "assembling_machine_input", "input" },
   { "assembling_machine_output", "output" },
+  { "crafter_input", "input" },    -- 2.1 merged the furnace/assembler/silo inventories
+  { "crafter_output", "output" },
 }
 
 local function collect_inventories(entity)
@@ -191,10 +193,10 @@ local function collect_fluids(e, out)
   end
   if not fluids then
     local count = 0
-    pcall(function() count = #e.fluidbox end)
+    pcall(function() count = e.fluids_count or 0 end)
     if count > 0 then
       for i = 1, count do
-        local ok2, f = pcall(function() return e.fluidbox[i] end)
+        local ok2, f = pcall(function() return e.get_fluid(i) end)
         if ok2 and f and f.name then
           fluids = fluids or {}
           fluids[f.name] = math.floor((fluids[f.name] or 0) + f.amount + 0.5)
@@ -211,11 +213,11 @@ local function collect_fluids(e, out)
   -- something is connected there — "no input fluid" is often a pipe on the
   -- wrong side.
   pcall(function()
-    local fb = e.fluidbox
-    if not fb or #fb == 0 then return end
+    local nfb = e.fluids_count or 0
+    if nfb == 0 then return end
     local conns = {}
-    for i = 1, #fb do
-      for _, pc in ipairs(fb.get_pipe_connections(i)) do
+    for i = 1, nfb do
+      for _, pc in ipairs(e.get_fluid_box_pipe_connections(i) or {}) do
         if pc.connection_type ~= "linked" and pc.target_position then
           local to
           pcall(function() if pc.target then to = pc.target.owner.name end end)
@@ -379,7 +381,7 @@ local function inspect_one(params)
       local bn = e.belt_neighbours
       local function xy(t) return { x = round1(t.position.x), y = round1(t.position.y) } end
       local outs = bn.outputs or {}
-      if e.type == "underground-belt" and e.belt_to_ground_type == "input" and e.neighbours then outs = { e.neighbours } end
+      if e.type == "underground-belt" and e.belt_to_ground_type == "input" and e.underground_belt_neighbour then outs = { e.underground_belt_neighbour } end
       if outs[1] then out.belt_feeds = xy(outs[1]) end
       local ins = {}
       for _, i in ipairs(bn.inputs or {}) do ins[#ins + 1] = xy(i) end
