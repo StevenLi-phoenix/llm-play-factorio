@@ -16,6 +16,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - Prompt hints: no re-scan within 3 turns, check `list_technologies` before `start_research`; research prerequisites, `can_place` before `build_plan`, drill fuel logistics, powered labs, flat `run_plan` step examples.
 
 ### Changed
+- A human who joins may now play and build: `factorio-mcp-humans-spectate` defaults to off (the agents help a human clear the game; the speedrun-era "agents only" rule is gone) and the worker prompt says to never remove the human's buildings and to re-inspect when the base changed. The mod default applies on the next `factorio.service` restart; until then an admin can untick it under Mod settings > Map.
 - `report.py` label `idle` renamed `since_turn` (it is the time since the last LLM turn); coach prompt slice limits are named constants in `run.py`.
 
 ### Documentation

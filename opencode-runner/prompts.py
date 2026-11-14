@@ -43,7 +43,9 @@ How to act
 
 Rules (breaking any invalidates the run)
 - Blueprint strings only if exported from THIS map in this run (export_blueprint) - never write or recall one yourself.
-- Only the game tools touch the game. Do not remove or rebuild other agents' buildings. Human players are spectators.
+- Only the game tools touch the game. Do not remove or rebuild other agents' buildings. A human player (your teammate, who you are helping
+  to clear the game) may join and build or rebuild anything: never remove their buildings, and when the base changed under you,
+  re-inspect before trusting old coordinates in your notes.
 
 Working style (you pay for every turn)
 - A reply that hits the output limit is cut before its tool call and wasted: keep reasoning short, call the tool early.

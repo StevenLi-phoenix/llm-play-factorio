@@ -1,5 +1,6 @@
--- Humans spectate. Agents are the only ones allowed to change the map; a human
--- who joins the server to watch is put in the spectator controller, which
+-- Optional (setting factorio-mcp-humans-spectate, off by default: the agents help a
+-- human player, who may build). When on, agents are the only ones allowed to change
+-- the map; a human who joins the server to watch is put in the spectator controller, which
 -- cannot build, mine, craft or fight. Their character (freeplay hands every new
 -- player a body with the start kit) would otherwise stand in the world as a
 -- free item source, so it is DESTROYED, items included: spectators need none.

@@ -71,7 +71,7 @@ data:extend({
     type = "bool-setting",
     name = "factorio-mcp-humans-spectate",
     setting_type = "runtime-global",
-    default_value = true,
+    default_value = false, -- the agents help a human player clear the game: humans may join and build
     order = "i",
   },
   {
