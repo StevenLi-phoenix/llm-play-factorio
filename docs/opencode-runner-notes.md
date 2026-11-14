@@ -12,3 +12,6 @@ Things reviewed and left for later (each is bigger than a safe small commit).
 - `quota_start_pct` ("burned N pts since start" on the status page) resets on every runner restart; persist the first value in `RUNNER_ROOT` so the burn figure spans the whole run.
 - `opencode-runner/uv.lock` is committed (reproducible installs); regenerate it with `uv lock` after changing dependencies, and check the server still starts after a re-sync.
 - `run.py` is ~340 lines and gaining features (trend line, burn control, coach); the `quota.py` split above is now due before the next pacing feature.
+- 2026-11-14 audit (haiku, checked against the gateway usage export): reasoning is ~65% of quota; 80% of tool replies carry one call; 293 worker replies were cut at `max_tokens` (mostly hand-counting `scan_area` ASCII grids). Prompt now asks for batching / no hand counting; the real fix is an answer-shaped scan output (free-tile list) on the mod side. Shrink cycles (`HIGH_TOKENS`) cost ~4.7% of list cost; raising it to 60k roughly cancels out, a deeper elide target (16-20k) is the lever to try.
+- Whether the gateway honours a thinking-disable flag is unverified; test on one worker before rolling out.
+- `report.py` "since_turn" is seconds since the agent's last LLM turn, not game-side idleness; a real per-character idle metric needs the last job-state change from the mod.

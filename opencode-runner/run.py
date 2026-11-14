@@ -26,6 +26,7 @@ from prompts import COACH_SYSTEM, check_templates
 log = logging.getLogger("runner")
 
 # Pacing and cadence tunables (seconds unless noted).
+COACH_STATUS_CHARS, COACH_NOTES_CHARS, COACH_BOARD_CHARS, BOARD_WRITE_CHARS = 200, 1200, 2500, 3500  # coach prompt/board slice limits
 COACH_MAX_TOKENS = 4000         # 12 of 23 coach replies hit 2500 (all reasoning, no board text) on 2026-11-14
 KPI_EVERY = 60                 # RCON KPI sample + game-speed enforcement
 QUOTA_EVERY = 120               # gateway quota poll
@@ -280,15 +281,15 @@ class Supervisor:
             sf = self.root / "status" / f"{a.name}.txt"
             nf = self.root / "notes" / f"{a.name}.md"
             lines.append(f"--- {a.name} ({a.model}) turns={a.m['turns']} tool_errors={a.m['tool_errors']} paused={a.paused}")
-            lines.append("status: " + (sf.read_text()[:200] if sf.exists() else "(none)"))
-            lines.append("notes: " + (nf.read_text()[:1200] if nf.exists() else "(none)"))
+            lines.append("status: " + (sf.read_text()[:COACH_STATUS_CHARS] if sf.exists() else "(none)"))
+            lines.append("notes: " + (nf.read_text()[:COACH_NOTES_CHARS] if nf.exists() else "(none)"))
         prev = (self.root / "board.md")
-        lines.append("--- previous board:\n" + (prev.read_text()[:2500] if prev.exists() else "(none)"))
+        lines.append("--- previous board:\n" + (prev.read_text()[:COACH_BOARD_CHARS] if prev.exists() else "(none)"))
         r = await self.gw.chat(agent="coach", model=self.coach_model, session="coach", tools=None, max_tokens=COACH_MAX_TOKENS,
                                messages=[{"role": "system", "content": COACH_SYSTEM}, {"role": "user", "content": "\n".join(lines)}])
         text = (r["choices"][0]["message"].get("content") or "").strip()
         if text:
-            prev.write_text(f"[board updated {iso(now())}]\n{text[:3500]}\n", encoding="utf-8")
+            prev.write_text(f"[board updated {iso(now())}]\n{text[:BOARD_WRITE_CHARS]}\n", encoding="utf-8")
             log.info("coach wrote board (%d chars)", len(text))
 
     async def report_loop(self) -> None:

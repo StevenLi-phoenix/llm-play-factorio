@@ -16,7 +16,7 @@ if "--oneline" in sys.argv:
     kp = d.get("kpi") or {}
     t = (kp.get("tick") or 0) // 60
     u = d.get("quota") or {}
-    ag = " | ".join(f"{n} t{a['turns']} e{a['tool_errors']} nt{a['no_tool']} idle{(time.time() - a['last_turn']) if a['last_turn'] else -1:.0f}s{' PAUSED' if a['paused'] else ''}"
+    ag = " | ".join(f"{n} t{a['turns']} e{a['tool_errors']} nt{a['no_tool']} since_turn{(time.time() - a['last_turn']) if a['last_turn'] else -1:.0f}s{' PAUSED' if a['paused'] else ''}"
                     for n, a in d["agents"].items())
     k = d.get("key") or {}
     print(f"game {t // 3600}:{t // 60 % 60:02d} ups {d['ups']} res {kp.get('research')} {float(kp.get('progress') or 0):.0%} done {kp.get('done')} "
@@ -36,10 +36,10 @@ if kp:
     c = kp.get("counts") or {}
     print("buildings:", dict(sorted(c.items(), key=lambda kv: -kv[1])[:14]))
 for n, a in d["agents"].items():
-    idle = time.time() - a["last_turn"] if a["last_turn"] else -1
+    since_turn = time.time() - a["last_turn"] if a["last_turn"] else -1
     print(f"{n} {a['model']}: turns {a['turns']} calls {a['tool_calls']} err {a['tool_errors']} notool {a['no_tool']} bad {a['bad']} "
           f"prompt {a['prompt']} cached {a['cached']} compl {a['completion']} lastp {a['last_prompt']} shrink {a['shrinks']} sum {a['summaries']} "
-          f"sess {a['sessions']} idle {idle:.0f}s paused {a['paused']} fatal {a['fatal']}")
+          f"sess {a['sessions']} since_turn {since_turn:.0f}s paused {a['paused']} fatal {a['fatal']}")
     sf = root / "status" / f"{n}.txt"
     if sf.exists():
         print("   status:", sf.read_text().strip()[:200])

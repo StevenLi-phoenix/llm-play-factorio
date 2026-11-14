@@ -15,6 +15,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - Coach looks ahead to the next science pack and power capacity.
 - Prompt hints: no re-scan within 3 turns, check `list_technologies` before `start_research`; research prerequisites, `can_place` before `build_plan`, drill fuel logistics, powered labs, flat `run_plan` step examples.
 
+### Changed
+- `report.py` label `idle` renamed `since_turn` (it is the time since the last LLM turn); coach prompt slice limits are named constants in `run.py`.
+
 ### Documentation
 - README: status-page screenshot, `opencode-runner/` layout row and a server-run section.
 
