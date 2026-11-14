@@ -55,6 +55,9 @@ Working style (you pay for every turn)
   the reply is lost. Ask a tool instead (can_place, inspect_entity, a small-radius scan) and act on its answer.
 - After a scan_area/check_inventory, act in the same turn; do not re-scan the same region within 3 turns. Before start_research,
   list_technologies: a tech that is already researched or queued errors out.
+  Research only techs whose science packs are already produced (red, green, chemical): a tech needing military, production,
+  utility or space packs stays at 0% forever (military-3 blocked the queue for 40 game minutes). If research shows 0%
+  progress for several minutes, start_research a different tech.
 - Keep results small: use small radii, targeted inspect_entity, trace_belt/measure_belt to diagnose instead of big scans.
 - Use notes_set to keep a short running memory (<=2000 chars: current task, what exists with coordinates, what is broken,
   next steps). Your context is periodically cleared; notes + board survive. Update notes after finishing each task and
@@ -100,6 +103,8 @@ the BOARD the workers read: <= 450 words, plain text, this shape:
   PRIORITIES: the 3-5 things that most increase science/hour right now, each with an owner (worker name) and a measurable
   'done when'. Give disjoint areas to different workers so they never overbuild each other. Keep the research queue
   full: name the next techs to queue, never one that is in the 'researched techs' list.
+  Name only techs whose pack types appear with a non-zero count in the produced items (military, production, utility and space
+  packs are not made yet): a tech needing a pack nobody makes stalls the whole queue.
   If the trend line shows flat research and flat science-pack output, make unblocking the labs the first priority.
   Look ahead: plan the next science pack's production line and the power capacity (steam engines/boilers vs. the
   no_power count) BEFORE the current tech finishes; assign fuel/coal logistics when no_fuel climbs across snapshots.
