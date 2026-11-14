@@ -10,3 +10,5 @@ Things reviewed and left for later (each is bigger than a safe small commit).
 - Tool errors for crafting should report need/have counts (factorio-mcp side), so agents stop retrying blind.
 - `dashboard.py` re-reads whole jsonl files when they change; fine for a day of data, switch to tail/offset reads if history passes ~10 MB.
 - `quota_start_pct` ("burned N pts since start" on the status page) resets on every runner restart; persist the first value in `RUNNER_ROOT` so the burn figure spans the whole run.
+- `opencode-runner/uv.lock` is committed (reproducible installs); regenerate it with `uv lock` after changing dependencies, and check the server still starts after a re-sync.
+- `run.py` is ~340 lines and gaining features (trend line, burn control, coach); the `quota.py` split above is now due before the next pacing feature.

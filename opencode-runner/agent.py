@@ -86,7 +86,7 @@ class Agent:
         self.history: list[dict] = []
         self.summary = ""
         self.m = dict(turns=0, tool_calls=0, tool_errors=0, prompt=0, completion=0, cached=0, sessions=0,
-                      last_turn=0.0, last_prompt=0, shrinks=0, summaries=0, no_tool=0, bad=0)
+                      last_turn=0.0, last_prompt=0, shrinks=0, summaries=0, no_tool=0, bad=0, cut=0)
         self.last_tools: list[str] = []
         for d in ("notes", "status", "logs"):
             (cfg.root / d).mkdir(parents=True, exist_ok=True)
@@ -298,7 +298,7 @@ class Agent:
                 self.m["no_tool"] += 1
                 self.log.info("T%d no tool call (%s) %s", self.m["turns"], r["choices"][0].get("finish_reason"), (msg.get("content") or "")[:120])
                 cut = r["choices"][0].get("finish_reason") == "length"
-                self.m["cut"] = self.m.get("cut", 0) + int(cut)
+                self.m["cut"] += int(cut)
                 self.history.append({"role": "user", "content": NUDGE_CUT if cut else NUDGE})
             for i, c in enumerate(calls):
                 name = c["function"]["name"]

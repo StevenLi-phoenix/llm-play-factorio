@@ -37,6 +37,7 @@ ROLLING_HOT, ROLLING_RESUME, WEEKLY_HOT = 92, 70, 98   # percent thresholds that
 BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.6      # projected/remaining ratios that pause / resume one agent
 AGENT_STAGGER = 15              # start workers this many seconds apart
 COACH_FIRST_WAIT = 20 * 60      # first coach run no later than this
+TREND_WINDOW = 30 * 60          # span of the coach's trend line
 KPI_HISTORY = 90                # kpi samples kept in memory for the coach's trend line
 STOP_GRACE = 30                 # seconds agents get to finish after stop
 
@@ -239,7 +240,7 @@ class Supervisor:
         if len(self.kpi_hist) < 2:
             return "trend: (not enough samples yet)"
         t1, k1 = self.kpi_hist[-1]
-        t0, k0 = next(((t, k) for t, k in self.kpi_hist if t1 - t <= 30 * 60), self.kpi_hist[0])
+        t0, k0 = next(((t, k) for t, k in self.kpi_hist if t1 - t <= TREND_WINDOW), self.kpi_hist[0])
         packs = [p for p in k1.get("produced", {}) if p.endswith("science-pack") or p == "electronic-circuit"]
         d = {p: (k1["produced"].get(p, 0) - (k0.get("produced") or {}).get(p, 0)) for p in packs}
         b = lambda k: sum((k.get("counts") or {}).values())  # noqa: E731
