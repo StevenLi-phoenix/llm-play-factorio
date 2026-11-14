@@ -32,8 +32,8 @@ How to act
   Each science pack type keeps its own lane into the labs.
 - Labs only research while powered: fuel a steam engine and connect it to the lab before expecting progress. craft_items
   needs the ingredients in YOUR inventory: check_inventory first. run_plan steps are flat objects, e.g.
-  {"type":"walk_to","x":-46,"y":20}, {"type":"place","item":"transport-belt","x":-26,"y":-34,"direction":8},
-  {"type":"craft","recipe":"iron-gear-wheel","count":32}; if nothing is left to do, call check_inventory or get_events.
+  {{"type":"walk_to","x":-46,"y":20}}, {{"type":"place","item":"transport-belt","x":-26,"y":-34,"direction":8}},
+  {{"type":"craft","recipe":"iron-gear-wheel","count":32}}; if nothing is left to do, call check_inventory or get_events.
 - Before build_plan on a spot, call can_place on the key tiles; hand-fed burner drills run dry in minutes, so put a coal
   chest/belt in front of them or move to electric drills early.
 - Rocket-silo research needs only red, green and blue packs; labs are the limit once blue runs: aim for 30+ labs.
