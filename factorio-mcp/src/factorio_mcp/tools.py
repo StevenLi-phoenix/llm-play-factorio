@@ -559,11 +559,13 @@ def register(app: MCPServer, game: Game) -> None:
     @tool("Your force's item and fluid production and consumption on your surface, per minute over a time window "
           "(like the production statistics window), plus all-time totals.")
     async def production_stats(
-        window: Literal["5s", "1m", "10m", "1h", "10h", "50h", "250h", "1000h"] = "1m",
+        window: Literal["5s", "1m", "5m", "10m", "1h", "10h", "50h", "250h", "1000h"] = "1m",
         names: Annotated[list[str] | None, Field(description="only these items/fluids (default: all seen)")] = None,
         kind: Literal["both", "item", "fluid"] = "both",
         top: Annotated[int, Field(ge=1, le=200)] = 20,
     ) -> str:
+        if window == "5m":  # models keep asking for 5 minutes; the game has no such window, 10m is the closest
+            window = "10m"
         r = await game.call("production_stats", {"window": window, "names": names, "kind": kind, "top": top})
         rows = as_list(r.get("rows"))
         if not rows:

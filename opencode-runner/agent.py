@@ -21,6 +21,18 @@ MAX_TOOL_CALLS_PER_TURN = 8
 RESTART_BACKOFF, RESTART_BACKOFF_MAX = 10, 300   # seconds between crashed-session restarts (doubles up to the max)
 
 
+def parse_tool_args(raw: str | None):
+    """json.loads, but when a model appends text after the first JSON value ("Extra data") keep the first value."""
+    text = raw or "{}"
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        if not e.msg.startswith("Extra data"):
+            raise
+        value, _ = json.JSONDecoder().raw_decode(text.lstrip())
+        return value
+
+
 @dataclass
 class RunCfg:
     root: Path                       # state dir (notes, status, logs, board)
@@ -303,7 +315,7 @@ class Agent:
             for i, c in enumerate(calls):
                 name = c["function"]["name"]
                 try:
-                    args = json.loads(c["function"].get("arguments") or "{}")
+                    args = parse_tool_args(c["function"].get("arguments"))
                     if not isinstance(args, dict):
                         raise ValueError("arguments must be a JSON object")
                 except ValueError as e:
