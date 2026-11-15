@@ -40,3 +40,10 @@ def test_trend_shows_upstream_items_of_the_green_chain():
     k1 = {**k0, "produced": {"iron-plate": 400, "transport-belt": 10, "pipe": 9, "inserter": 4}}
     line = run.Supervisor.trend_line(_sup([(0, k0), (1500, k1)]))
     assert "'iron-plate': 300" in line and "'transport-belt': 0" in line and "pipe" not in line
+
+
+def test_queue_with_packs_names_the_packs_each_tech_needs():
+    assert run.queue_with_packs(["research-speed-3", "x"], {"research-speed-3": "automation+logistic+chemical"}) == \
+        "research-speed-3 [automation+logistic+chemical], x"
+    assert run.queue_with_packs([], {}) == "(empty)"
+    assert run.queue_with_packs(None, None) == "(empty)"

@@ -52,8 +52,13 @@ KPI_LUA = r"""
 local f = game.forces.player
 local s = game.surfaces.nauvis
 local out = {tick = game.tick, speed = game.speed, research = f.current_research and f.current_research.name or nil,
-  progress = f.research_progress, queue = {}, done = 0, researched = {}, counts = {}, problems = {}, produced = {}, chars = {}}
-for _, t in pairs(f.research_queue) do out.queue[#out.queue+1] = t.name end
+  progress = f.research_progress, queue = {}, packs = {}, done = 0, researched = {}, counts = {}, problems = {}, produced = {}, chars = {}}
+for _, t in pairs(f.research_queue) do
+  out.queue[#out.queue+1] = t.name
+  local p = {}
+  for _, i in pairs(t.research_unit_ingredients) do p[#p+1] = (i.name:gsub("%-science%-pack$", "")) end
+  out.packs[t.name] = table.concat(p, "+")
+end
 for _, t in pairs(f.technologies) do if t.researched and t.enabled then out.done = out.done + 1; out.researched[#out.researched+1] = t.name end end
 table.sort(out.researched)
 local probs = {[defines.entity_status.no_fuel]="no_fuel", [defines.entity_status.no_power]="no_power",
@@ -97,6 +102,13 @@ def read_directives(root: Path, limit: int = DIRECTIVES_CHARS) -> str:
     except OSError as e:
         log.warning("directives: cannot read %s: %s", f, e)
         return ""
+
+
+def queue_with_packs(queue: list | None, packs: dict | None) -> str:
+    """"research-speed-3 [automation+logistic+chemical], ..." so the coach reads which packs each queued tech needs
+    instead of guessing (it once wrote that research-speed-3 needs production and utility packs)."""
+    packs = packs or {}
+    return ", ".join(f"{n} [{packs[n]}]" if n in packs else str(n) for n in queue or []) or "(empty)"
 
 
 def directives_block(directives: str) -> str:
@@ -323,7 +335,7 @@ class Supervisor:
         k = self.kpi or await self.read_kpi() or {}
         t = k.get("tick", 0) // 60
         lines = [f"game time {t // 3600}:{t // 60 % 60:02d}  tick {k.get('tick')}  speed {k.get('speed')}  ups {self.ups:.0f}",
-                 f"research: {k.get('research')} {float(k.get('progress') or 0):.0%}; queue {k.get('queue')}; techs done {k.get('done')}",
+                 f"research: {k.get('research')} {float(k.get('progress') or 0):.0%}; queue {queue_with_packs(k.get('queue'), k.get('packs'))}; techs done {k.get('done')}",
                  f"researched techs: {', '.join(k.get('researched') or []) or '(none)'}",
                  f"produced totals: {k.get('produced')}", f"buildings: {dict(sorted((k.get('counts') or {}).items(), key=lambda kv: -kv[1])[:30])}",
                  f"problems: {k.get('problems')}", f"characters: {k.get('chars')}", self.trend_line()]
