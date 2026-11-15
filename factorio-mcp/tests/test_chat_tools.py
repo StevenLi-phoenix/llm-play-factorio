@@ -70,3 +70,19 @@ async def test_run_plan_accepts_a_deconstruct_step():
     assert out == "Plan queued: #5 deconstruct."
     cmd = rcon.commands[0].replace('\\"', '"')
     assert '"type":"deconstruct"' in cmd and '"target":{"x":12.5,"y":30.5}' in cmd
+
+
+async def test_run_plan_accepts_set_filters_steps():
+    """w1 made 33 set_filters calls in an hour, 30 back to back, and hit the 8-calls-per-turn cap: filters can be chained."""
+    rcon = FakeRcon(env(data={"task_id": 6}), env(data={"task_id": 7}))
+    game = FakeGame(Bridge(rcon, "w1"), inbox=False)
+    game.queue = None
+    app = FakeApp()
+    T.register(app, game)
+    out = await app.registry["run_plan"](
+        steps=[PlanStep(type="set_filters", x=1.5, y=2.5, filters=["iron-plate"]),
+               PlanStep(type="set_filters", x=3.5, y=2.5, filters=[], mode="blacklist")], wait_s=0)
+    assert out == "Plan queued: #6 set_filters, #7 set_filters."
+    first = rcon.commands[0].replace('\\"', '"')
+    assert '"type":"set_filters"' in first and '"filters":["iron-plate"]' in first and '"target":{"x":1.5,"y":2.5}' in first
+    assert '"mode":"blacklist"' in rcon.commands[1].replace('\\"', '"')

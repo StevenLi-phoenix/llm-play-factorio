@@ -80,7 +80,7 @@ class BuildStep(BaseModel):
 
 class PlanStep(BaseModel):
     type: Literal["craft", "insert", "extract", "mine", "place", "set_recipe", "rotate", "walk_to", "wait_until", "say",
-                  "pick_up", "deconstruct"]
+                  "pick_up", "deconstruct", "set_filters"]
     text: str | None = Field(None, max_length=4000, description="say: what to say when this step runs (cut to 400 characters)")
     recipe: str | None = Field(None, description="craft: the recipe to craft; place / set_recipe: the recipe to set on the machine")
     count: int | None = Field(None, ge=1, le=10000, description="craft: recipe executions (a belt craft makes 2); "
@@ -102,6 +102,8 @@ class PlanStep(BaseModel):
     optional: bool | None = Field(None, description="true: if this step fails, the steps after it still run (e.g. a fuel top-up)")
     fast_replace: bool | None = Field(None, description="place: swap one of your buildings standing there; the same item refreshes it (else the step fails)")
     radius: float | None = Field(None, ge=0.5, le=25, description="pick_up: sweep radius around the target in tiles (default 5)")
+    filters: list[str] | None = Field(None, description="set_filters: item names for the inserter/splitter/loader at x,y ([] clears)")
+    mode: Literal["whitelist", "blacklist"] | None = Field(None, description="set_filters: whitelist (default) or blacklist")
 
 
 class TrainStop(BaseModel):
@@ -1070,7 +1072,7 @@ def register(app: MCPServer, game: Game) -> None:
                 "anchor": {"x": anchor_x, "y": anchor_y}, "stop_on_error": stop_on_error}
         return await run_job(task, wait_s, replace)
 
-    @tool("Queue a sequence of actions (craft, insert, extract, mine, place, set_recipe, rotate, walk_to, pick_up, deconstruct) as "
+    @tool("Queue a sequence of actions (craft, insert, extract, mine, place, set_recipe, rotate, walk_to, pick_up, deconstruct, set_filters) as "
           "chained jobs. If one fails, the rest is cancelled, except that a step marked optional only reports its "
           "failure. Place steps for inserters can give drop_to / pickup_from instead of a direction (an inserter's "
           "direction is the side it PICKS UP FROM — facing north it picks from the north tile and drops south, not "

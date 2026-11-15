@@ -135,7 +135,7 @@ class Agent:
         self.history: list[dict] = []
         self.summary = ""
         self.m = dict(turns=0, tool_calls=0, tool_errors=0, prompt=0, completion=0, cached=0, sessions=0,
-                      last_turn=0.0, last_prompt=0, shrinks=0, summaries=0, no_tool=0, bad=0, cut=0)
+                      last_turn=0.0, last_prompt=0, shrinks=0, summaries=0, no_tool=0, bad=0, cut=0, trimmed=0)
         self.last_tools: list[str] = []
         self.board_seen = 0.0            # mtime of the board.md this agent has in its context
         for d in ("notes", "status", "logs"):
@@ -365,7 +365,7 @@ class Agent:
                 cut = r["choices"][0].get("finish_reason") == "length"
                 self.m["cut"] += int(cut)
                 self.history.append({"role": "user", "content": NUDGE_CUT if cut else NUDGE})
-            result_chars = 0
+            result_chars = trimmed = 0
             for i, c in enumerate(calls):
                 name = c["function"]["name"]
                 try:
@@ -380,7 +380,11 @@ class Agent:
                            + (" Your reply hit the output limit and was cut: think less and send shorter arguments." if cut else ""))
                 else:
                     out = "skipped: too many tool calls in one turn, repeat it next turn" if i >= MAX_TOOL_CALLS_PER_TURN \
-                        else self._trim(await self._call(name, args))
+                        else await self._call(name, args)
+                    if len(out) > self.cfg.max_result_chars:
+                        self.m["trimmed"] += 1
+                        trimmed += 1
+                        out = self._trim(out)
                 self.m["tool_calls"] += 1
                 result_chars += len(out)
                 if out.startswith("ERROR"):
@@ -394,8 +398,8 @@ class Agent:
                 self.log.info("T%d board changed: pushed %d chars to the context", self.m["turns"], len(fresh))
                 self.history.append({"role": "user", "content": "BOARD UPDATED (new priorities/directives from the coach or the "
                                      "human supervisor; follow them from your next action):\n" + fresh})
-            self.log.info("T%d prompt=%s completion=%s ms=%s calls=%d results=%dc", self.m["turns"], u.get("prompt_tokens"),
-                          u.get("completion_tokens"), r.get("_ms"), len(calls), result_chars)
+            self.log.info("T%d prompt=%s completion=%s ms=%s calls=%d results=%dc trimmed=%d", self.m["turns"], u.get("prompt_tokens"),
+                          u.get("completion_tokens"), r.get("_ms"), len(calls), result_chars, trimmed)
             self.write_metrics()
             if self.m["last_prompt"] > self.cfg.high_tokens:
                 self._elide()

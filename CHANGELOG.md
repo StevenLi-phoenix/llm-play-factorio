@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 - The per-turn log line now ends in `calls=N results=Mc` (tool calls in the turn, total result chars) so token cost per call chain can be measured from `state/logs`.
 
 ### Added
+- `run_plan` accepts a `set_filters` step (x, y, filters, mode): w1 made 33 `set_filters` calls in an hour, 30 of them back to back, and 8 were refused by the 8-calls-per-turn cap. The per-turn log line also ends in `trimmed=N` (tool results cut at the 5.5k cap) and `report`'s metrics carry a `trimmed` counter.
 - `tasks` tool: a persistent per-agent task list (add / doing / done / drop / list, `state/tasks/<name>.json`, 12 open tasks, 160 chars each). It is shown again at every context start (a worker's context resets about every 40 minutes and `notes_set` overwrites the whole note) and in the coach's input.
 - Stalled-agent watchdog: the runner logs a WARNING when an unpaused agent has taken no LLM turn for 10 minutes (and an INFO when it recovers).
 - `run_plan` accepts a `deconstruct` step (x, y: take one building down): agents wrote it in plans 27 times in a day and got the whole call rejected. The standalone `deconstruct` tool keeps the area sweep.
