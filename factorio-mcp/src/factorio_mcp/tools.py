@@ -79,7 +79,7 @@ class BuildStep(BaseModel):
 
 class PlanStep(BaseModel):
     type: Literal["craft", "insert", "extract", "mine", "place", "set_recipe", "rotate", "walk_to", "wait_until", "say",
-                  "pick_up"]
+                  "pick_up", "deconstruct"]
     text: str | None = Field(None, max_length=4000, description="say: what to say when this step runs (cut to 400 characters)")
     recipe: str | None = Field(None, description="craft: the recipe to craft; place / set_recipe: the recipe to set on the machine")
     count: int | None = Field(None, ge=1, le=10000, description="craft: recipe executions (a belt craft makes 2); "
@@ -1048,7 +1048,7 @@ def register(app: MCPServer, game: Game) -> None:
                 "anchor": {"x": anchor_x, "y": anchor_y}, "stop_on_error": stop_on_error}
         return await run_job(task, wait_s, replace)
 
-    @tool("Queue a sequence of actions (craft, insert, extract, mine, place, set_recipe, rotate, walk_to, pick_up) as "
+    @tool("Queue a sequence of actions (craft, insert, extract, mine, place, set_recipe, rotate, walk_to, pick_up, deconstruct) as "
           "chained jobs. If one fails, the rest is cancelled, except that a step marked optional only reports its "
           "failure. Place steps for inserters can give drop_to / pickup_from instead of a direction (an inserter's "
           "direction is the side it PICKS UP FROM — facing north it picks from the north tile and drops south, not "

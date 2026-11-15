@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from factorio_mcp.bridge import Bridge
+from factorio_mcp.tools import PlanStep
 
-from test_research_tools import FakeRcon, env, registered
+from factorio_mcp import tools as T
+
+from test_research_tools import FakeApp, FakeGame, FakeRcon, env, registered
 
 
 async def test_say_with_to_sends_the_recipient():
@@ -53,3 +56,17 @@ def test_send_chat_script_builds_the_same_command_as_the_bridge():
     expected = escape_lua_string(json.dumps(body, separators=(",", ":")))
     assert cmd == f'/silent-command remote.call("factorio_mcp","rpc","post_chat","{expected}")'
     assert '"to"' not in send_chat.build_command("x").replace('\\"', '"')
+
+
+async def test_run_plan_accepts_a_deconstruct_step():
+    """Agents kept writing {"type": "deconstruct"} in run_plan (27 rejected calls in a day): taking a building down can be chained."""
+    rcon = FakeRcon(env(data={"task_id": 5}))
+    game = FakeGame(Bridge(rcon, "w1"), inbox=False)
+    game.queue = None  # the job-queue chain key the real Game exposes
+    app = FakeApp()
+    T.register(app, game)
+    out = await app.registry["run_plan"](
+        steps=[PlanStep(type="deconstruct", x=12.5, y=30.5)], wait_s=0)
+    assert out == "Plan queued: #5 deconstruct."
+    cmd = rcon.commands[0].replace('\\"', '"')
+    assert '"type":"deconstruct"' in cmd and '"target":{"x":12.5,"y":30.5}' in cmd
