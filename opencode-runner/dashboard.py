@@ -6,15 +6,20 @@ GET /            the page (dashboard.html)
 GET /events      Server-Sent Events: one JSON state snapshot every DASH_EVERY seconds (default 3)
 GET /api/state   the same snapshot once
 GET /healthz     "ok"
+GET /mods        list of the mod zips players install to join the game (DASH_MODS, default ../downloads/mods)
+GET /mods/X.zip  one of those zips; only an exact "<name>_<version>.zip" file name that exists in that folder is served
 
 Reads RUNNER_ROOT (runner.json, history.jsonl, kpi.jsonl, board.md, status/, notes/, logs/). Never writes, takes no
-path or file arguments from clients, and agent-written text is sent as data: the page renders it with textContent.
+path arguments from clients (the /mods file name is matched against a strict pattern and the folder listing), and
+agent-written text is sent as data: the page renders it with textContent.
 """
 from __future__ import annotations
 
 import json
 import logging
+import html
 import os
+import re
 import subprocess
 import threading
 import time
@@ -24,6 +29,8 @@ from pathlib import Path
 ROOT = Path(os.environ.get("RUNNER_ROOT", Path.home() / "factorio-agent/state"))
 PAGE = Path(__file__).with_name("dashboard.html")
 EVERY = float(os.environ.get("DASH_EVERY", "3"))
+MODS_DIR = Path(os.environ.get("DASH_MODS", ROOT.parent / "downloads" / "mods"))
+MOD_ZIP = re.compile(r"[A-Za-z0-9_.\-]{1,80}\.zip")
 LOG_TAIL_BYTES = 24_000
 MAX_POINTS = 240
 
@@ -104,6 +111,26 @@ def snapshot() -> dict:
             "runner_log": tail_lines(ROOT / "logs" / "runner.log", 14)}
 
 
+def mod_file(name: str, mods_dir: Path = MODS_DIR) -> Path | None:
+    """The zip `name` inside mods_dir, or None: only a plain file name matching MOD_ZIP that is a regular file there."""
+    if not MOD_ZIP.fullmatch(name) or ".." in name:
+        return None
+    p = mods_dir / name
+    return p if p.is_file() and p.parent == mods_dir else None
+
+
+def mods_page(mods_dir: Path = MODS_DIR) -> bytes:
+    rows = []
+    for p in sorted(mods_dir.glob("*.zip")) if mods_dir.is_dir() else []:
+        if mod_file(p.name, mods_dir):
+            rows.append(f'<li><a href="/mods/{html.escape(p.name)}">{html.escape(p.name)}</a> ({p.stat().st_size // 1024} KB)</li>')
+    body = "".join(rows) or "<li>no mod zips yet</li>"
+    return ("<!doctype html><meta charset=utf-8><title>Mods</title><h1>Mods to join the game</h1>"
+            "<p>Put the zip in your Factorio mods folder (Windows: %APPDATA%\\Factorio\\mods). Game version 2.1.24, "
+            "plus the built-in base, space-age, quality, elevated-rails and recycler.</p>"
+            f"<ul>{body}</ul>").encode()
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "factorio-dash"
     protocol_version = "HTTP/1.1"
@@ -126,6 +153,15 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
         elif path == "/api/state":
             self._send(200, json.dumps(snapshot()).encode(), "application/json")
+        elif path == "/mods":
+            self._send(200, mods_page(), "text/html; charset=utf-8")
+        elif path.startswith("/mods/"):
+            f = mod_file(path[len("/mods/"):])
+            if f is None:
+                self._send(404, b"not found", "text/plain")
+            else:
+                logging.info("mod download %s from %s", f.name, self.client_address[0])
+                self._send(200, f.read_bytes(), "application/zip")
         elif path == "/healthz":
             self._send(200, b"ok", "text/plain")
         elif path == "/events":
