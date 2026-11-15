@@ -33,3 +33,18 @@ async def test_ghost_clear_reports_removed():
 def test_ghost_tools_are_gated_on_the_mod_version():
     assert T.gated_tools(["ghost_build", "ghost_clear", "status"], (0, 3, 13)) == ["ghost_build", "ghost_clear"]
     assert T.gated_tools(["ghost_build", "ghost_clear"], (0, 3, 14)) == []
+
+
+async def test_count_dx_dy_repeat_a_step_before_it_goes_to_the_game():
+    rcon = FakeRcon(env(data={"surface": "nauvis", "placed": 3, "placed_by_name": {"electric-mining-drill": 3}, "rejected": [], "rejected_total": 0}))
+    steps = [GhostStep(name="electric-mining-drill", x=1.5, y=1.5, direction=8, count=3, dx=3)]
+    await registered(Bridge(rcon, "w1"), inbox=False).registry["ghost_build"](steps)
+    cmd = rcon.commands[0].replace("\\", "")
+    assert cmd.count('"name":"electric-mining-drill"') == 3
+    assert '"x":4.5' in cmd and '"x":7.5' in cmd and "count" not in cmd
+
+
+def test_expand_ghost_steps_keeps_direction_and_recipe():
+    from factorio_mcp.tools import expand_ghost_steps
+    out = expand_ghost_steps([GhostStep(name="inserter", x=0.5, y=0.5, direction=8, count=2, dy=2)])
+    assert out == [{"name": "inserter", "x": 0.5, "y": 0.5, "direction": 8}, {"name": "inserter", "x": 0.5, "y": 2.5, "direction": 8}]

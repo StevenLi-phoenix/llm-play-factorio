@@ -7,7 +7,7 @@ local companion = require("scripts.companion")
 
 local M = {}
 
-local MAX_STEPS = 400
+local MAX_STEPS = 1500
 
 -- What an item or entity name places: the entity name, or nil when it places nothing (tiles are not handled).
 local function entity_of(name)

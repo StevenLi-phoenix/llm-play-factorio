@@ -75,8 +75,8 @@ check(created[1].recipe == "iron-plate", "recipe is set on the ghost")
 -- input checks
 check(not pcall(ghosts.ghost_build, { steps = {} }), "empty steps is an error")
 local many = {}
-for i = 1, 401 do many[i] = { name = "transport-belt", x = i, y = 0 } end
-check(not pcall(ghosts.ghost_build, { steps = many }), "more than 400 steps is an error")
+for i = 1, 1501 do many[i] = { name = "transport-belt", x = i, y = 0 } end
+check(not pcall(ghosts.ghost_build, { steps = many }), "more than 1500 steps is an error")
 
 -- ghost_clear removes ghosts in an area and reports how many
 existing = { "entity-ghost", "entity-ghost", "tile-ghost" }

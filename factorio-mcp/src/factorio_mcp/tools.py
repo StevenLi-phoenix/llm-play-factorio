@@ -125,6 +125,19 @@ class GhostStep(BaseModel):
     y: float
     direction: int | None = Field(None, ge=0, le=15, description="0=N 4=E 8=S 12=W")
     recipe: str | None = Field(None, description="recipe for an assembler/chemical plant ghost")
+    count: int | None = Field(None, ge=1, le=200, description="repeat this step count times (default 1), each copy moved by dx, dy")
+    dx: float | None = Field(None, description="with count: x shift between copies (a row of 3x3 drills: 3)")
+    dy: float | None = Field(None, description="with count: y shift between copies")
+
+
+def expand_ghost_steps(steps: list["GhostStep"]) -> list[dict[str, Any]]:
+    """count/dx/dy repeat a step: 30 drills in a row are one step, not 30 hand-counted coordinates."""
+    out: list[dict[str, Any]] = []
+    for st in steps:
+        base = st.model_dump(exclude_none=True, exclude={"count", "dx", "dy"})
+        for k in range(st.count or 1):
+            out.append({**base, "x": st.x + k * (st.dx or 0), "y": st.y + k * (st.dy or 0)})
+    return out
 
 
 class PlatformStop(BaseModel):
@@ -170,6 +183,9 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     "chest_requests": (0, 3, 12),
     "ghost_build": (0, 3, 14), "ghost_clear": (0, 3, 14),
 }
+
+
+GHOST_MAX_STEPS = 1500  # one ghost_build call after count/dx/dy are expanded (matches the mod)
 
 
 def fmt_version(v: tuple[int, ...]) -> str:
@@ -935,10 +951,13 @@ def register(app: MCPServer, game: Game) -> None:
 
     @tool("Show a design as blueprint GHOSTS (blue see-through previews) on the ground where you are: nothing is "
           "built or crafted, no items are needed, nobody has to be nearby, and the human sees it in the game. Each "
-          "step is checked (water, cliffs, buildings in the way are rejected with the reason). Up to 400 steps per "
-          "call. ghost_clear removes them again.")
+          "step is checked (water, cliffs, buildings in the way are rejected with the reason). A step with count, dx, "
+          "dy repeats itself (30 drills in a row = one step); up to 1500 ghosts per call. ghost_clear removes them again.")
     async def ghost_build(steps: Annotated[list[GhostStep], Field(min_length=1, max_length=400)]) -> str:
-        r = await game.call("ghost_build", {"steps": [st.model_dump(exclude_none=True) for st in steps]})
+        expanded = expand_ghost_steps(steps)
+        if len(expanded) > GHOST_MAX_STEPS:
+            raise ToolError(f"{len(expanded)} ghosts in one call; at most {GHOST_MAX_STEPS}, split it")
+        r = await game.call("ghost_build", {"steps": expanded})
         out = f"{r['placed']} ghost(s) placed on {r.get('surface', 'the surface')}"
         if r.get("placed_by_name"):
             out += " (" + ", ".join(f"{v} {k}" for k, v in sorted(r["placed_by_name"].items())) + ")"
