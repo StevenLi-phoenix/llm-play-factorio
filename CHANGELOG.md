@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased] - 2026-11-14
 
+### Changed
+- Tool results carry one ALERTS line instead of one per RCON call (306 of 2437 logged results had 2+, repeating the counters with stale deltas), and the events footer no longer repeats a `job_done` the result already states ("Job #N done" plus "[event job_done] job #N" was sent twice); failures always stay.
+- The per-turn log line now ends in `calls=N results=Mc` (tool calls in the turn, total result chars) so token cost per call chain can be measured from `state/logs`.
+
 ### Added
 - `tasks` tool: a persistent per-agent task list (add / doing / done / drop / list, `state/tasks/<name>.json`, 12 open tasks, 160 chars each). It is shown again at every context start (a worker's context resets about every 40 minutes and `notes_set` overwrites the whole note) and in the coach's input.
 - Stalled-agent watchdog: the runner logs a WARNING when an unpaused agent has taken no LLM turn for 10 minutes (and an INFO when it recovers).

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import re
 import time
 from collections import Counter
 from typing import Annotated, Any, Literal
@@ -174,13 +175,25 @@ def gated_tools(names: list[str] | tuple[str, ...], mod_version: tuple[int, ...]
 
 
 def register(app: MCPServer, game: Game) -> None:
-    async def inbox() -> str:
+    def unreported(evs: list[dict[str, Any]], seen: str) -> list[dict[str, Any]]:
+        """Drops job_done events for jobs the tool result already reports ("Job #12 done", "#12 walk_to: done"):
+        the same completion twice costs tokens for nothing. job_failed always stays."""
+        keep = []
+        for e in evs:
+            m = re.match(r"job #(\d+)", str(e.get("text", ""))) if e.get("kind") == "job_done" else None
+            if m and re.search(rf"#{m.group(1)}\b", seen):
+                continue
+            keep.append(e)
+        return keep
+
+    async def inbox(seen: str = "") -> str:
         """Unread chat (players and other agents) since this character's cursor, as a
-        footer. Reading advances the cursor, so each line is delivered once."""
+        footer. Reading advances the cursor, so each line is delivered once. `seen` is the tool result the
+        footer is attached to (events it already states are left out)."""
         try:
             b = await game.bridge()
             msgs = as_list((await b.read_chat()).get("messages"))
-            evs = as_list((await b.read_events()).get("events"))
+            evs = unreported(as_list((await b.read_events()).get("events")), seen)
         except Exception:
             return ""
         out = ""
@@ -203,7 +216,9 @@ def register(app: MCPServer, game: Game) -> None:
         this character's last call (mod 0.2.19+; nothing against older mods,
         and steady state is silent by design)."""
         lines = game.drain_alerts()
-        return ("\n\n" + "\n".join(lines)) if lines else ""
+        # one line per RCON call this tool made; each is a full digest, so the last one is the freshest and the
+        # earlier ones only repeat the counters with stale deltas
+        return ("\n\n" + lines[-1]) if lines else ""
 
     def with_alerts(fn):
         @functools.wraps(fn)
@@ -226,11 +241,11 @@ def register(app: MCPServer, game: Game) -> None:
             try:
                 out = await fn(*args, **kwargs)
             except ToolError as e:
-                msg = str(e) + await inbox()
+                msg = str(e) + await inbox(str(e))
                 raise ToolError((prefix + msg) if prefix else msg) from e
             if not isinstance(out, str):
                 return out
-            suffix = await inbox()
+            suffix = await inbox(out)
             return (prefix + out + suffix) if prefix else (out + suffix)
 
         return wrapper

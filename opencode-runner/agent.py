@@ -355,6 +355,7 @@ class Agent:
                 cut = r["choices"][0].get("finish_reason") == "length"
                 self.m["cut"] += int(cut)
                 self.history.append({"role": "user", "content": NUDGE_CUT if cut else NUDGE})
+            result_chars = 0
             for i, c in enumerate(calls):
                 name = c["function"]["name"]
                 try:
@@ -371,6 +372,7 @@ class Agent:
                     out = "skipped: too many tool calls in one turn, repeat it next turn" if i >= MAX_TOOL_CALLS_PER_TURN \
                         else self._trim(await self._call(name, args))
                 self.m["tool_calls"] += 1
+                result_chars += len(out)
                 if out.startswith("ERROR"):
                     self.m["tool_errors"] += 1
                 self.last_tools.append(name)
@@ -382,7 +384,8 @@ class Agent:
                 self.log.info("T%d board changed: pushed %d chars to the context", self.m["turns"], len(fresh))
                 self.history.append({"role": "user", "content": "BOARD UPDATED (new priorities/directives from the coach or the "
                                      "human supervisor; follow them from your next action):\n" + fresh})
-            self.log.info("T%d prompt=%s completion=%s ms=%s", self.m["turns"], u.get("prompt_tokens"), u.get("completion_tokens"), r.get("_ms"))
+            self.log.info("T%d prompt=%s completion=%s ms=%s calls=%d results=%dc", self.m["turns"], u.get("prompt_tokens"),
+                          u.get("completion_tokens"), r.get("_ms"), len(calls), result_chars)
             self.write_metrics()
             if self.m["last_prompt"] > self.cfg.high_tokens:
                 self._elide()

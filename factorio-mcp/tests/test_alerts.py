@@ -225,3 +225,40 @@ async def test_list_tools_advertises_all_when_version_unknown():
 
     names = [t.name for t in await app.list_tools()]
     assert "pick_up" in names  # no information -> no gating (status quo)
+
+
+# ------------------------------------------------------------------- token spam (2026-11-15)
+
+async def test_several_alert_lines_collapse_to_the_freshest():
+    # a tool that makes 3 RCON calls collects 3 digests; only the last one reaches the agent
+    rcon = FakeRcon(
+        env(data={"status": "x"}, alerts="ALERTS: no-power 3 (+3 since your last call)"),
+        env(data={"messages": [], "last_id": 1}, alerts="ALERTS: no-power 4 (+1)"),
+        env(data={"events": []}, alerts="ALERTS: no-power 5 (+1)"),
+    )
+    out = await registered(Bridge(rcon, "agent")).registry["set_status"]("x")
+    assert out.count("ALERTS:") == 1
+
+
+def job_done_event(job_id, kind="job_done"):
+    return {"id": 9, "kind": kind, "text": f"job #{job_id} (walk_to) done: arrived"}
+
+
+async def test_job_done_event_dropped_when_the_result_already_says_it():
+    rcon = FakeRcon(
+        env(data={"status": "see #77"}),
+        env(data={"messages": [], "last_id": 1}),
+        env(data={"events": [job_done_event(77)]}),
+    )
+    out = await registered(Bridge(rcon, "agent")).registry["set_status"]("see #77")
+    assert "Events since" not in out
+
+
+async def test_other_job_events_and_failures_are_kept():
+    rcon = FakeRcon(
+        env(data={"status": "x"}),
+        env(data={"messages": [], "last_id": 1}),
+        env(data={"events": [job_done_event(78), {"id": 10, "kind": "job_failed", "text": "job #77 (walk_to) failed: no path"}]}),
+    )
+    out = await registered(Bridge(rcon, "agent")).registry["set_status"]("see #77")
+    assert "job #78" in out and "job #77 (walk_to) failed" in out
