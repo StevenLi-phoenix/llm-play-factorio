@@ -19,6 +19,7 @@ from pathlib import Path
 
 from factorio_mcp.rcon import RconClient
 
+import tasklist
 from agent import HIGH_TOKENS, Agent, RunCfg
 from llm import Gateway, GatewayFatal
 from prompts import COACH_SYSTEM, check_templates
@@ -26,6 +27,7 @@ from prompts import COACH_SYSTEM, check_templates
 log = logging.getLogger("runner")
 
 # Pacing and cadence tunables (seconds unless noted).
+COACH_TASKS_CHARS = 700          # each worker's task list in the coach prompt
 COACH_STATUS_CHARS, COACH_NOTES_CHARS, COACH_BOARD_CHARS, BOARD_WRITE_CHARS = 200, 1200, 2500, 3500  # coach prompt/board slice limits
 DIRECTIVES_CHARS = 3000         # max size of state/directives.md (human-set tasks prepended to every board)
 COACH_MAX_TOKENS = 4000         # 12 of 23 coach replies hit 2500 (all reasoning, no board text) on 2026-11-14
@@ -40,6 +42,7 @@ ROLLING_HOT, ROLLING_RESUME, WEEKLY_HOT = 92, 70, 98   # percent thresholds that
 BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.8      # projected/remaining ratios that pause / resume one agent
 AGENT_STAGGER = 15              # start workers this many seconds apart
 COACH_FIRST_WAIT = 20 * 60      # first coach run no later than this
+STALL_WARN = 10 * 60             # an unpaused agent without an LLM turn for this long is reported as stalled
 TREND_WINDOW = 30 * 60          # span of the coach's trend line
 TREND_ITEMS = {"electronic-circuit", "iron-plate", "iron-gear-wheel", "inserter", "transport-belt"}   # shown next to the packs: where the green-pack chain breaks
 KPI_HISTORY = 90                # kpi samples kept in memory for the coach's trend line
@@ -116,6 +119,12 @@ def board_body(board: str, directives: str) -> str:
     return board.replace(directives_block(directives), "", 1)
 
 
+def stalled(rows: dict, now_ts: float, limit: float = STALL_WARN) -> list[str]:
+    """Names of agents that should be taking turns (not paused, not fatal, already started) but have not for `limit` s."""
+    return sorted(n for n, r in rows.items()
+                  if not r.get("paused") and not r.get("fatal") and r.get("last_turn") and now_ts - r["last_turn"] > limit)
+
+
 class Supervisor:
     def __init__(self):
         e = os.environ
@@ -135,6 +144,7 @@ class Supervisor:
         self.deadline = parse_iso(e["DEADLINE"]) if e.get("DEADLINE") else None
         self.stop = asyncio.Event()
         self.quota: dict | None = None
+        self.stalled_seen: set[str] = set()   # agents already reported as stalled
         self.burn_changed_at = 0.0     # time of the last burn-control pause/resume; the rate uses samples after it
         self.samples: list[tuple[float, int]] = self._load_samples()   # (ts, monthly percent); survives restarts
         self.kpi: dict | None = None
@@ -323,6 +333,7 @@ class Supervisor:
             lines.append(f"--- {a.name} ({a.model}) turns={a.m['turns']} tool_errors={a.m['tool_errors']} paused={a.paused}")
             lines.append("status: " + (sf.read_text()[:COACH_STATUS_CHARS] if sf.exists() else "(none)"))
             lines.append("notes: " + (nf.read_text()[:COACH_NOTES_CHARS] if nf.exists() else "(none)"))
+            lines.append("tasks: " + tasklist.render(tasklist.load(self.root / "tasks" / f"{a.name}.json")).replace("\n", " | ")[:COACH_TASKS_CHARS])
         prev = (self.root / "board.md")
         directives = read_directives(self.root)
         if directives:
@@ -344,6 +355,12 @@ class Supervisor:
                     "gateway": self.gw.stats, "ups": round(self.ups, 1), "kpi": self.kpi,
                     "agents": {a.name: a.summary_row() for a in self.agents}}
             (self.root / "runner.json").write_text(json.dumps(data), encoding="utf-8")
+            stuck = set(stalled(data["agents"], now()))
+            for n in sorted(stuck - self.stalled_seen):
+                log.warning("agent %s has taken no LLM turn for %d min (not paused): stalled?", n, STALL_WARN // 60)
+            for n in sorted(self.stalled_seen - stuck):
+                log.info("agent %s is taking turns again", n)
+            self.stalled_seen = stuck
             if now() - last_hist >= HISTORY_EVERY:        # time series for the dashboard charts
                 last_hist = now()
                 g = self.gw.stats

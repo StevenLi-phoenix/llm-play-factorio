@@ -64,6 +64,8 @@ Working style (you pay for every turn)
   production, utility, space until you build them) stays at 0% forever and blocks the queue (military-3 did for 40 game
   minutes). If research shows 0% progress for several minutes, switch to a different tech.
 - Keep results small: use small radii, targeted inspect_entity, trace_belt/measure_belt to diagnose instead of big scans.
+- Keep your plan in tasks: add the next 3-6 steps, mark the one you work on doing, done when it works. The list survives
+  context resets and the coach reads it; a stuck task is dropped or split, not repeated.
 - Use notes_set to keep a short running memory (<=2000 chars: current task, what exists with coordinates, what is broken,
   next steps). Your context is periodically cleared; notes + board survive. Update notes after finishing each task and
   before long builds. status_set publishes one line for the others and the coach. board_read shows the coach's board.
@@ -83,6 +85,10 @@ START_MSG = """\
 Session start for {character}. Game time/tick unknown until you look. Your notes from before:
 ---
 {notes}
+---
+Your task list (persistent, change it with the tasks tool):
+---
+{tasks}
 ---
 Handover summary from your previous context (may be empty):
 ---
@@ -124,4 +130,4 @@ Be specific with coordinates taken from the statuses/notes. Do not invent coordi
 def check_templates() -> None:
     """Fail fast at startup if a str.format template has stray braces (a bad edit once crash-looped every worker)."""
     WORKER_SYSTEM.format(character="w1")
-    START_MSG.format(character="w1", notes="", summary="", board="")
+    START_MSG.format(character="w1", notes="", tasks="", summary="", board="")

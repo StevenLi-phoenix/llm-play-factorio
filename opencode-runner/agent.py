@@ -12,6 +12,7 @@ from factorio_mcp.game import Config as GameConfig
 from factorio_mcp.server import build_app
 
 from llm import Gateway, GatewayBadRequest, GatewayFatal
+import tasklist
 from prompts import COMPACT_PROMPT, NUDGE, NUDGE_CUT, START_MSG, WORKER_SYSTEM
 
 LOG_OK_CHARS, LOG_ERR_CHARS = 160, 500   # tool output chars logged; errors keep the failing reason
@@ -112,6 +113,7 @@ def compact_args(a: str, keep: int = 2) -> str:
 
 LOCAL_TOOLS = [
     {"type": "function", "function": {"name": "notes_set", "description": "Overwrite your private notes (<=2000 chars). They survive context resets: keep current task, what exists with coordinates, what is broken, next steps.", "parameters": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}}},
+    {"type": "function", "function": {"name": "tasks", "description": "Your persistent task list (survives context resets, shown to the coach). op: add (text) | doing (id) | done (id) | drop (id) | list. Returns the list.", "parameters": {"type": "object", "properties": {"op": {"type": "string", "enum": list(tasklist.OPS)}, "text": {"type": "string"}, "id": {"type": "integer"}}, "required": ["op"]}}},
     {"type": "function", "function": {"name": "status_set", "description": "Publish one line (<=200 chars) about what you are doing/need, shown to the coach and other agents.", "parameters": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}}},
     {"type": "function", "function": {"name": "board_read", "description": "Read the coach's board (phase, priorities, warnings) plus every agent's status line.", "parameters": {"type": "object", "properties": {}}}},
     {"type": "function", "function": {"name": "tool_help", "description": "Full original description of a game tool.", "parameters": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}}},
@@ -168,6 +170,9 @@ class Agent:
         p = self._p("notes")
         return p.read_text(encoding="utf-8") if p.exists() else "(none yet)"
 
+    def read_tasks(self) -> str:
+        return tasklist.render(tasklist.load(self._p("tasks", "json")))
+
     def board_text(self) -> str:
         bp = self.cfg.root / "board.md"
         parts = [bp.read_text(encoding="utf-8") if bp.exists() else "(no board yet)"]
@@ -216,6 +221,10 @@ class Agent:
             t = str(args.get("text", ""))[:2000]
             self._p("notes").write_text(t, encoding="utf-8")
             return f"notes saved ({len(t)} chars)"
+        if name == "tasks":
+            tid = args.get("id")
+            return tasklist.apply(self._p("tasks", "json"), str(args.get("op", "list")), args.get("text"),
+                                  tid if isinstance(tid, int) else None)
         if name == "status_set":
             self._p("status", "txt").write_text(str(args.get("text", ""))[:200], encoding="utf-8")
             return "status published"
@@ -270,7 +279,7 @@ class Agent:
     def _reset_history(self) -> None:
         _, self.board_seen = board_update(self.cfg.root / "board.md", 0.0)   # START_MSG below carries the current board
         self.history = [{"role": "user", "content": START_MSG.format(
-            character=self.character, notes=self.read_notes(), summary=self.summary or "(none)", board=self.board_text())}]
+            character=self.character, notes=self.read_notes(), tasks=self.read_tasks(), summary=self.summary or "(none)", board=self.board_text())}]
 
     # ---------- main loop ----------
     async def run_forever(self) -> None:
