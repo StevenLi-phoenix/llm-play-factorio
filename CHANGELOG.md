@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased] - 2026-11-14
 
 ### Added
+- A running worker is told when `board.md` changes (the new board is appended to its context as a user message): workers almost never call `board_read` (w2 last did 9 h earlier), so coach boards and `directives.md` tasks only reached them after a context reset.
 - KPI `produced` also counts inserters, transport belts, engine units and pipes, and the coach's trend line shows iron plate, gears, circuits, inserters and belts next to the packs, so a stall in the green-pack chain shows where it breaks (these read 0.0 before).
 - `state/directives.md`: human/supervisor tasks the runner prepends to every board the coach writes (the coach sees them as input but cannot drop them).
 - `production_stats` accepts `window="5m"` (mapped to 10m); tool-call arguments with trailing text keep the first JSON object instead of failing (62 failed calls in one day).

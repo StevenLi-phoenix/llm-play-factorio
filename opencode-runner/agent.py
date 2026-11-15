@@ -34,6 +34,18 @@ def parse_tool_args(raw: str | None):
         return value
 
 
+def board_update(path: Path, seen: float) -> tuple[str | None, float]:
+    """(text, mtime) when board.md changed after `seen`; (None, seen) otherwise. Workers rarely call board_read
+    (w2 last did 9 h ago), so a new board or directive would only reach them after a context reset."""
+    try:
+        mtime = path.stat().st_mtime
+        if mtime <= seen:
+            return None, seen
+        return path.read_text(encoding="utf-8"), mtime
+    except OSError:
+        return None, seen
+
+
 @dataclass
 class RunCfg:
     root: Path                       # state dir (notes, status, logs, board)
@@ -120,6 +132,7 @@ class Agent:
         self.m = dict(turns=0, tool_calls=0, tool_errors=0, prompt=0, completion=0, cached=0, sessions=0,
                       last_turn=0.0, last_prompt=0, shrinks=0, summaries=0, no_tool=0, bad=0, cut=0)
         self.last_tools: list[str] = []
+        self.board_seen = 0.0            # mtime of the board.md this agent has in its context
         for d in ("notes", "status", "logs"):
             (cfg.root / d).mkdir(parents=True, exist_ok=True)
         if not self.log.handlers:   # one file per agent; the supervisor log stays readable
@@ -255,6 +268,7 @@ class Agent:
         return WORKER_SYSTEM.format(character=self.character)
 
     def _reset_history(self) -> None:
+        _, self.board_seen = board_update(self.cfg.root / "board.md", 0.0)   # START_MSG below carries the current board
         self.history = [{"role": "user", "content": START_MSG.format(
             character=self.character, notes=self.read_notes(), summary=self.summary or "(none)", board=self.board_text())}]
 
@@ -354,6 +368,11 @@ class Agent:
                 self.history.append({"role": "tool", "tool_call_id": c["id"], "content": out})
                 self.log.info("T%d %s(%s) -> %s", self.m["turns"], name, c["function"].get("arguments", "")[:140],
                               out[:LOG_ERR_CHARS if out.startswith("ERROR") else LOG_OK_CHARS].replace("\n", " | "))
+            fresh, self.board_seen = board_update(self.cfg.root / "board.md", self.board_seen)
+            if fresh:
+                self.log.info("T%d board changed: pushed %d chars to the context", self.m["turns"], len(fresh))
+                self.history.append({"role": "user", "content": "BOARD UPDATED (new priorities/directives from the coach or the "
+                                     "human supervisor; follow them from your next action):\n" + fresh})
             self.log.info("T%d prompt=%s completion=%s ms=%s", self.m["turns"], u.get("prompt_tokens"), u.get("completion_tokens"), r.get("_ms"))
             self.write_metrics()
             if self.m["last_prompt"] > self.cfg.high_tokens:
