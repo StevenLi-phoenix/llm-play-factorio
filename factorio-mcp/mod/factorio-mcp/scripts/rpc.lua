@@ -25,6 +25,7 @@ local OUTBOX_TTL_TICKS = 5 * 60 * 60 -- stored chunked responses expire after 5 
 local UNSCOPED = {
   ping = true, echo = true, get_chunk = true, bind = true,
   register_blueprint = true, list_registered_blueprints = true, area_snapshot = true,
+  post_chat = true, -- a line from the supervisor, no character
 }
 
 -- "__factorio-mcp__/scripts/x.lua:12: message" -> "message"

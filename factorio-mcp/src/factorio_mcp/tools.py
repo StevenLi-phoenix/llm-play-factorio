@@ -639,7 +639,8 @@ def register(app: MCPServer, game: Game) -> None:
     # ------------------------------------------------------- chat/events
 
     def chat_lines(msgs: list[dict[str, Any]]) -> str:
-        return "\n".join(f"[chat #{m['id']}] <{m['player']}{' (agent)' if m.get('bot') else ''}> {m['text']}" for m in msgs)
+        return "\n".join(f"[chat #{m['id']}] <{m['player']}{' (agent)' if m.get('bot') else ''}{' -> ' + m['to'] if m.get('to') else ''}> {m['text']}"
+                         for m in msgs)
 
     def acknowledge(evs: list[dict[str, Any]]) -> str:
         """A job_failed event shown to the agent counts as acknowledged: the next
@@ -692,13 +693,15 @@ def register(app: MCPServer, game: Game) -> None:
         return "Status cleared." if r.get("cleared") else f"Status: {r.get('status')}"
 
     @tool("Say something in game chat as your character: at once, or with queued=true when the jobs queued before "
-          "it have run (so an announcement doesn't come before the work it describes).")
+          "it have run (so an announcement doesn't come before the work it describes). With to=<teammate> (w2, ..., "
+          "or all) only that one reads it in its chat footer; the game chat shows it to humans either way.")
     async def say(text: Annotated[str, Field(min_length=1, max_length=4000, description="cut to 400 characters in game")],
-                  queued: bool = False) -> str:
+                  queued: bool = False,
+                  to: Annotated[str | None, Field(max_length=32, description="recipient character name, or all")] = None) -> str:
         if queued:
-            return await run_job({"type": "say", "text": text}, None)
-        await game.call("say", {"text": text})
-        return "Said."
+            return await run_job({"type": "say", "text": text, **({"to": to} if to else {})}, None)
+        await game.call("say", {"text": text, **({"to": to} if to else {})})
+        return f"Said to {to}." if to else "Said."
 
     @tool("Queue a technology for research for your force.")
     async def start_research(technology: str) -> str:

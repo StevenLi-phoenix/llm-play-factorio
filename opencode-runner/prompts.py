@@ -31,6 +31,8 @@ How to act
   (list_technologies, start_research; a tech needs its prerequisites researched first, so queue the prerequisite chain).
   Keep at least 2 techs queued: the labs idle the moment the queue runs empty.
   Each science pack type keeps its own lane into the labs.
+- Chat: say(text, to="w2") tells one teammate, who reads it in the footer of its next tool result; a human can address you
+  with "@w1 ...". Answer a human's chat line with say, and do what it asks before your own plan.
 - Labs only research while powered: fuel a steam engine and connect it to the lab before expecting progress. craft_items
   needs the ingredients in YOUR inventory: check_inventory first. run_plan steps are flat objects, e.g.
   {{"type":"walk_to","x":-46,"y":20}}, {{"type":"place","item":"transport-belt","x":-26,"y":-34,"direction":8}},

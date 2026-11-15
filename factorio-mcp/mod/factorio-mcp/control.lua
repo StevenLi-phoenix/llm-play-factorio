@@ -74,6 +74,7 @@ end
 -- chat / events
 rpc.register("get_chat", chat.get)
 rpc.register("say", chat.say)
+rpc.register("post_chat", chat.post)
 rpc.register("get_events", events.get)
 
 -- perception (instant)

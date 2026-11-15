@@ -11,7 +11,7 @@ function M.start(task)
 end
 
 function M.tick(task)
-  chat.say({ text = task.text })
+  chat.say({ text = task.text, to = task.to })
   return { status = "done", detail = "said: " .. task.text }
 end
 

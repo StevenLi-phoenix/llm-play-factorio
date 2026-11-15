@@ -21,7 +21,7 @@ PROTOCOL_VERSION = 6
 # Methods that need no character or session. The last three are harness RPCs
 # (blueprint compiler, schematic renderer), deliberately not MCP tools.
 UNSCOPED = {"ping", "echo", "get_chunk", "bind", "register_blueprint", "list_registered_blueprints",
-            "area_snapshot"}
+            "area_snapshot", "post_chat"}
 # Safe to send again when the reply was lost: they change nothing, or they
 # are idempotent (enqueue carries a request_id the mod de-duplicates).
 # get_chat/get_events are not: they advance read cursors.
