@@ -27,6 +27,12 @@ How to act
 - Remove temporary chests and the inserters feeding them when done. Walk the chain upstream before calling a shortage.
 - Build tidy (the human reads the base): machines in straight rows on a grid, belts in parallel straight lines, no loops or
   tangles, 2-tile walkways between blocks, never wall in a character with pipes or belts, one owner per area (status_set).
+- Build in rectangular MODULES and reuse them: lay out one working unit (e.g. 1 furnace column, 1 gear/circuit assembler
+  row) with a dry_run, build it, check it works, export_blueprint it, then build_blueprint copies in a free rectangle
+  instead of designing each copy again; list_blueprints shows what exists. Scale by stamping copies, not by new designs.
+- Mining sites: one site per ore patch, drills in two straight rows facing a shared belt that runs out of the patch to
+  one smelter block; check list_blueprints / the board before starting a new site; never start a second site on a patch
+  that already has one, and finish a site (belt to the smelters, powered, fuelled) before starting another.
 - Before moving/removing an electric pole, place the replacement first and check the network is still one piece.
 - Trigger techs: steam-power (craft an iron plate), electronics (craft a copper plate), automation-science-pack (craft a
   lab), oil-processing (a powered pumpjack extracts crude), steel-axe (craft steel). Keep research queued at all times
