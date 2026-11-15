@@ -119,6 +119,14 @@ class PlatformStep(BaseModel):
     recipe: str | None = Field(None, description="recipe for an assembler/crusher/chemical plant ghost")
 
 
+class GhostStep(BaseModel):
+    name: str = Field(description="item or entity, e.g. electric-mining-drill, transport-belt, stone-furnace, inserter")
+    x: float = Field(description="tile centre: a 3x3 drill sits on .5 coordinates, a 2x2 furnace on whole ones")
+    y: float
+    direction: int | None = Field(None, ge=0, le=15, description="0=N 4=E 8=S 12=W")
+    recipe: str | None = Field(None, description="recipe for an assembler/chemical plant ghost")
+
+
 class PlatformStop(BaseModel):
     planet: str = Field(description="space location: nauvis, vulcanus, fulgora, gleba, aquilo, solar-system-edge, ...")
     wait: Literal["requests"] | float | None = Field(
@@ -160,6 +168,7 @@ TOOL_MIN_MOD: dict[str, tuple[int, ...]] = {
     "set_filters": (0, 3, 5),  # introduced in mod 0.3.5
     "place_tiles": (0, 3, 8),
     "chest_requests": (0, 3, 12),
+    "ghost_build": (0, 3, 14), "ghost_clear": (0, 3, 14),
 }
 
 
@@ -923,6 +932,27 @@ def register(app: MCPServer, game: Game) -> None:
         if None not in (x1, y1, x2, y2):
             task["area"] = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
         return await run_job(task, wait_s, replace)
+
+    @tool("Show a design as blueprint GHOSTS (blue see-through previews) on the ground where you are: nothing is "
+          "built or crafted, no items are needed, nobody has to be nearby, and the human sees it in the game. Each "
+          "step is checked (water, cliffs, buildings in the way are rejected with the reason). Up to 400 steps per "
+          "call. ghost_clear removes them again.")
+    async def ghost_build(steps: Annotated[list[GhostStep], Field(min_length=1, max_length=400)]) -> str:
+        r = await game.call("ghost_build", {"steps": [st.model_dump(exclude_none=True) for st in steps]})
+        out = f"{r['placed']} ghost(s) placed on {r.get('surface', 'the surface')}"
+        if r.get("placed_by_name"):
+            out += " (" + ", ".join(f"{v} {k}" for k, v in sorted(r["placed_by_name"].items())) + ")"
+        out += "; nothing was built."
+        rej = as_list(r.get("rejected"))
+        if rej:
+            out += f" {r['rejected_total']} rejected:\n" + "\n".join(
+                f"  step {x['i']} {x['name']} at ({x.get('x')}, {x.get('y')}): {x['why']}" for x in rej)
+        return out
+
+    @tool("Delete the blueprint ghosts (not buildings) in a rectangle on the ground where you are.")
+    async def ghost_clear(x1: float, y1: float, x2: float, y2: float) -> str:
+        r = await game.call("ghost_clear", {"x1": x1, "y1": y1, "x2": x2, "y2": y2})
+        return f"{r['removed']} ghost(s) deleted in ({x1:g}, {y1:g})-({x2:g}, {y2:g})."
 
     @tool("Set the recipe of the crafting machine at x,y (walks within reach).")
     async def set_recipe(x: Coord, y: Coord, recipe: str, wait_s: WaitS = None, replace: Replace = False) -> str:
