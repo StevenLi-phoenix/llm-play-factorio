@@ -21,6 +21,9 @@ HIGH_TOKENS = 42_000      # prompt tokens that trigger a shrink
 MAX_RESULT_CHARS = 5_500  # per tool result
 MAX_TOOL_CALLS_PER_TURN = 8
 RESTART_BACKOFF, RESTART_BACKOFF_MAX = 10, 300   # seconds between crashed-session restarts (doubles up to the max)
+TOOL_TIMEOUT_S = 200      # one tool call, game side included
+NOTES_CHARS, STATUS_CHARS, HELP_CHARS = 2000, 200, 3500   # notes_set / status_set caps (the prompt says <=2000), tool_help reply
+ELIDE_OVER, ELIDE_TOOL_KEEP, ELIDE_ARGS = 300, 260, 500   # _elide: older results/replies over 300 chars shrink, tool args over 500
 
 
 def parse_tool_args(raw: str | None):
@@ -218,7 +221,7 @@ class Agent:
 
     async def _call(self, name: str, args: dict) -> str:
         if name == "notes_set":
-            t = str(args.get("text", ""))[:2000]
+            t = str(args.get("text", ""))[:NOTES_CHARS]
             self._p("notes").write_text(t, encoding="utf-8")
             return f"notes saved ({len(t)} chars)"
         if name == "tasks":
@@ -226,16 +229,16 @@ class Agent:
             return tasklist.apply(self._p("tasks", "json"), str(args.get("op", "list")), args.get("text"),
                                   tid if isinstance(tid, int) else None)
         if name == "status_set":
-            self._p("status", "txt").write_text(str(args.get("text", ""))[:200], encoding="utf-8")
+            self._p("status", "txt").write_text(str(args.get("text", ""))[:STATUS_CHARS], encoding="utf-8")
             return "status published"
         if name == "board_read":
             return self.board_text()
         if name == "tool_help":
-            return self._full_desc.get(str(args.get("name")), "unknown tool")[:3500]
+            return self._full_desc.get(str(args.get("name")), "unknown tool")[:HELP_CHARS]
         try:
-            res = await asyncio.wait_for(self._app.call_tool(name, args), timeout=200)
+            res = await asyncio.wait_for(self._app.call_tool(name, args), timeout=TOOL_TIMEOUT_S)
         except asyncio.TimeoutError:
-            return "ERROR: tool call timed out after 200s"
+            return f"ERROR: tool call timed out after {TOOL_TIMEOUT_S}s"
         except Exception as e:  # noqa: BLE001
             return f"ERROR: {type(e).__name__}: {e}"
         text = "\n".join(c.text for c in res.content if getattr(c, "text", None))
@@ -245,15 +248,15 @@ class Agent:
     def _elide(self) -> None:
         cut = len(self.history) - KEEP_TAIL
         for msg in self.history[:max(cut, 0)]:
-            if msg["role"] == "tool" and len(msg["content"]) > 300:
-                msg["content"] = msg["content"][:260] + " ...[elided]"
+            if msg["role"] == "tool" and len(msg["content"]) > ELIDE_OVER:
+                msg["content"] = msg["content"][:ELIDE_TOOL_KEEP] + " ...[elided]"
             elif msg["role"] == "assistant":
-                if msg.get("content") and len(msg["content"]) > 300:
-                    msg["content"] = msg["content"][:300] + "..."
+                if msg.get("content") and len(msg["content"]) > ELIDE_OVER:
+                    msg["content"] = msg["content"][:ELIDE_OVER] + "..."
                 msg.pop("reasoning_content", None)
                 for tc in msg.get("tool_calls") or []:
                     a = tc["function"].get("arguments") or ""
-                    if len(a) > 500:
+                    if len(a) > ELIDE_ARGS:
                         tc["function"]["arguments"] = compact_args(a)
         self.m["shrinks"] += 1
 
