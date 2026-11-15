@@ -32,3 +32,11 @@ def test_window_picks_sample_within_30_minutes():
     s = _sup([(0, _k(0.1, 100, 1)), (3000, _k(0.2, 200, 2)), (4000, _k(0.5, 260, 5))])
     line = run.Supervisor.trend_line(s)
     assert "last 17 min" in line and "'automation-science-pack': 60" in line
+
+
+def test_trend_shows_upstream_items_of_the_green_chain():
+    k0 = {"research": "x", "progress": 0.0, "done": 1, "counts": {"lab": 1},
+          "produced": {"iron-plate": 100, "transport-belt": 10, "pipe": 5}, "problems": {}}
+    k1 = {**k0, "produced": {"iron-plate": 400, "transport-belt": 10, "pipe": 9, "inserter": 4}}
+    line = run.Supervisor.trend_line(_sup([(0, k0), (1500, k1)]))
+    assert "'iron-plate': 300" in line and "'transport-belt': 0" in line and "pipe" not in line

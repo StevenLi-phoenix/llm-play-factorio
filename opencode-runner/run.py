@@ -41,6 +41,7 @@ BURN_PAUSE_FACTOR, BURN_RESUME_FACTOR = 1.15, 0.8      # projected/remaining rat
 AGENT_STAGGER = 15              # start workers this many seconds apart
 COACH_FIRST_WAIT = 20 * 60      # first coach run no later than this
 TREND_WINDOW = 30 * 60          # span of the coach's trend line
+TREND_ITEMS = {"electronic-circuit", "iron-plate", "iron-gear-wheel", "inserter", "transport-belt"}   # shown next to the packs: where the green-pack chain breaks
 KPI_HISTORY = 90                # kpi samples kept in memory for the coach's trend line
 STOP_GRACE = 30                 # seconds agents get to finish after stop
 
@@ -66,7 +67,7 @@ end
 local stats = f.get_item_production_statistics(s)
 for _, item in pairs({"iron-plate","copper-plate","steel-plate","coal","iron-gear-wheel","electronic-circuit","automation-science-pack",
   "logistic-science-pack","chemical-science-pack","production-science-pack","utility-science-pack","space-science-pack",
-  "plastic-bar","advanced-circuit","processing-unit","rocket-part"}) do
+  "plastic-bar","advanced-circuit","processing-unit","rocket-part","inserter","transport-belt","engine-unit","pipe"}) do
   local n = stats.get_input_count(item)
   if n > 0 then out.produced[item] = n end
 end
@@ -301,7 +302,7 @@ class Supervisor:
             return "trend: (not enough samples yet)"
         t1, k1 = self.kpi_hist[-1]
         t0, k0 = next(((t, k) for t, k in self.kpi_hist if t1 - t <= TREND_WINDOW), self.kpi_hist[0])
-        packs = [p for p in k1.get("produced", {}) if p.endswith("science-pack") or p == "electronic-circuit"]
+        packs = [p for p in k1.get("produced", {}) if p.endswith("science-pack") or p in TREND_ITEMS]
         d = {p: (k1["produced"].get(p, 0) - (k0.get("produced") or {}).get(p, 0)) for p in packs}
         b = lambda k: sum((k.get("counts") or {}).values())  # noqa: E731
         return (f"trend over the last {(t1 - t0) / 60:.0f} min: research {k0.get('research')} {float(k0.get('progress') or 0):.0%} -> "
