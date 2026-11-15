@@ -30,7 +30,17 @@ end
 
 -- Whether `who` (a character name) is meant to read the message: broadcasts and lines addressed to them.
 local function visible_to(m, who)
-  return m.to == nil or m.to == "all" or m.to == who:lower()
+  return m.to == nil or m.to == "all" or m.to == (who and who:lower())
+end
+
+local MAX_TEXT = 400
+local function clip(text)
+  return #text > MAX_TEXT and (text:sub(1, MAX_TEXT - 3) .. "...") or text
+end
+
+-- "[from -> to] text" in the game chat, coloured per speaker kind.
+local function announce(color, from, to, text)
+  game.print("[color=" .. color .. "][" .. from .. (to and (" -> " .. to) or "") .. "][/color] " .. text)
 end
 
 function M.on_console_chat(event)
@@ -68,9 +78,9 @@ function M.say(params)
   end
   local name = companion.context()
   local to = check_to(params.to)
-  if #params.text > 400 then params.text = params.text:sub(1, 397) .. "..." end
-  game.print("[color=#4EC9B0][" .. name .. (to and (" -> " .. to) or "") .. "][/color] " .. params.text)
-  M.log_bot_line(name, params.text, to)
+  local text = clip(params.text)
+  announce("#4EC9B0", name, to, text)
+  M.log_bot_line(name, text, to)
   return {}
 end
 
@@ -82,8 +92,8 @@ function M.post(params)
   end
   local from = type(params.from) == "string" and params.from ~= "" and params.from:sub(1, MAX_NAME) or "supervisor"
   local to = check_to(params.to)
-  local text = #params.text > 400 and (params.text:sub(1, 397) .. "...") or params.text
-  game.print("[color=#CE9178][" .. from .. (to and (" -> " .. to) or "") .. "][/color] " .. text)
+  local text = clip(params.text)
+  announce("#CE9178", from, to, text)
   append({ player = from, text = text, to = to })
   return {}
 end
