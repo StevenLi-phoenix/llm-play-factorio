@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased] - 2026-11-14
 
 ### Changed
+- Worker prompt asks for tidy builds (straight rows, parallel belts, 2-tile walkways, no walls around a character, one owner per area) after the human found the base messy; `state/directives.md` carries the cleanup of 143 unbuilt ghosts and 57 empty chests.
 - `factorio-agents.service` runs the game at `GAME_SPEED=1` (was 2): a human player is in the game, and the runner re-applied 2 within a minute of every manual `game.speed = 1`.
 - The coach's KPI input lists the science packs each queued tech needs (`research-speed-3 [automation+logistic+chemical]`): the 02:19Z board claimed research-speed-3 needs production and utility packs and told w2 to dequeue it, which was wrong (it needs red, green and blue).
 - A failed `drive_to` that got stuck tells the agent to `exit_vehicle` and `walk_to` (w4 retried `drive_to` 8 times in 2 minutes from one stuck spot); an over-long tool result is cut on whole lines and names the omitted chars (7% of single-call turns hit the 5.5k cap, a scan grid with a half row read as data); `trace_belt` text says "a transport line" instead of "a 2.0 transport line".

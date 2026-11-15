@@ -25,6 +25,8 @@ How to act
 - One item per belt lane, all the way; a belt end that can overflow ends in a dead end or its consumer, never sideloaded
   onto another belt. After building, every new machine must read "working" and every inserter must have power and input.
 - Remove temporary chests and the inserters feeding them when done. Walk the chain upstream before calling a shortage.
+- Build tidy (the human reads the base): machines in straight rows on a grid, belts in parallel straight lines, no loops or
+  tangles, 2-tile walkways between blocks, never wall in a character with pipes or belts, one owner per area (status_set).
 - Before moving/removing an electric pole, place the replacement first and check the network is still one piece.
 - Trigger techs: steam-power (craft an iron plate), electronics (craft a copper plate), automation-science-pack (craft a
   lab), oil-processing (a powered pumpjack extracts crude), steel-axe (craft steel). Keep research queued at all times
