@@ -17,6 +17,29 @@ import httpx
 log = logging.getLogger("runner.llm")
 
 
+def parse_max_tokens(raw: str | None, default: int | None) -> int | None:
+    """MAX_TOKENS env: a number caps replies; "none" or "max" sends no max_tokens (the model's own maximum)."""
+    v = (raw or "").strip().lower()
+    if not v:
+        return default
+    if v in ("none", "max"):
+        return None
+    return int(v)
+
+
+def request_body(model: str, messages: list, tools: list | None, max_tokens: int | None, tool_choice: str,
+                 temperature: float | None) -> dict:
+    body: dict = {"model": model if "/" in model else f"opencode-go/{model}", "messages": messages}
+    if max_tokens is not None:
+        body["max_tokens"] = max_tokens
+    if tools:
+        body["tools"] = tools
+        body["tool_choice"] = tool_choice
+    if temperature is not None:
+        body["temperature"] = temperature
+    return body
+
+
 class GatewayFatal(Exception):
     def __init__(self, status: int, text: str):
         super().__init__(f"HTTP {status}: {text[:300]}")
@@ -45,15 +68,9 @@ class Gateway:
             fh.write(json.dumps({"ts": time.time(), "status": status, "ms": ms, "h": headers, "body": text}) + "\n")
 
     async def chat(self, *, agent: str, model: str, messages: list, tools: list | None, session: str,
-                   max_tokens: int = 4096, temperature: float | None = None,
+                   max_tokens: int | None = 4096, temperature: float | None = None,
                    tool_choice: str = "auto") -> dict:
-        body: dict = {"model": model if "/" in model else f"opencode-go/{model}", "messages": messages,
-                      "max_tokens": max_tokens}
-        if tools:
-            body["tools"] = tools
-            body["tool_choice"] = tool_choice
-        if temperature is not None:
-            body["temperature"] = temperature
+        body = request_body(model, messages, tools, max_tokens, tool_choice, temperature)
         sent_extra = dict(self.extra_body)
         body.update(sent_extra)
         headers = {"Authorization": f"Bearer {self.key}", "content-type": "application/json", "x-session-key": session}

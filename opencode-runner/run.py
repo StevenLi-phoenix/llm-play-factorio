@@ -21,6 +21,7 @@ from factorio_mcp.rcon import RconClient
 
 import tasklist
 from agent import HIGH_TOKENS, Agent, RunCfg
+import llm
 from llm import Gateway, GatewayFatal
 from prompts import COACH_SYSTEM, check_templates
 
@@ -30,7 +31,7 @@ log = logging.getLogger("runner")
 COACH_TASKS_CHARS = 700          # each worker's task list in the coach prompt
 COACH_STATUS_CHARS, COACH_NOTES_CHARS, COACH_BOARD_CHARS, BOARD_WRITE_CHARS = 200, 1200, 2500, 3500  # coach prompt/board slice limits
 DIRECTIVES_CHARS = 3000         # max size of state/directives.md (human-set tasks prepended to every board)
-COACH_MAX_TOKENS = 4000         # 12 of 23 coach replies hit 2500 (all reasoning, no board text) on 2026-11-14
+COACH_MAX_TOKENS = llm.parse_max_tokens(os.environ.get("MAX_TOKENS"), 4000)  # None = no cap;         # 12 of 23 coach replies hit 2500 (all reasoning, no board text) on 2026-11-14
 KPI_EVERY = 60                  # RCON KPI sample + game-speed enforcement
 QUOTA_EVERY = 120               # gateway quota poll
 REPORT_EVERY = 30               # runner.json rewrite

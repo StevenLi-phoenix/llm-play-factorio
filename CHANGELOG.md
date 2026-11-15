@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased] - 2026-11-14
 
 ### Changed
+- `MAX_TOKENS` env: `none` (or `max`) sends no `max_tokens`, so each reply may use the model's own maximum; a number caps it (default 6000 workers / 4000 coach). `factorio-agents.service` sets `none`: a design task had a 6000-token reply cut before its tool call (99 s of reasoning, nothing done).
 - Worker prompt asks for rectangular reusable modules (export_blueprint once, then build_blueprint copies) and one finished mining site per ore patch: the human found agents never reuse a layout and scatter half-built mining sites.
 - Worker prompt asks for tidy builds (straight rows, parallel belts, 2-tile walkways, no walls around a character, one owner per area) after the human found the base messy; `state/directives.md` carries the cleanup of 143 unbuilt ghosts and 57 empty chests.
 - `factorio-agents.service` runs the game at `GAME_SPEED=1` (was 2): a human player is in the game, and the runner re-applied 2 within a minute of every manual `game.speed = 1`.

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 from factorio_mcp.game import Config as GameConfig
 from factorio_mcp.server import build_app
 
+import llm
 from llm import Gateway, GatewayBadRequest, GatewayFatal
 import tasklist
 from prompts import COMPACT_PROMPT, NUDGE, NUDGE_CUT, START_MSG, WORKER_SYSTEM
@@ -58,7 +60,7 @@ class RunCfg:
     rcon_password: str
     high_tokens: int = HIGH_TOKENS
     max_result_chars: int = MAX_RESULT_CHARS
-    max_tokens: int = 6000
+    max_tokens: int | None = llm.parse_max_tokens(os.environ.get("MAX_TOKENS"), 6000)  # None = no cap
 
 
 def _slim(node):
