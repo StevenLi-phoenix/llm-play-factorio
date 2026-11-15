@@ -264,13 +264,20 @@ def register(app: MCPServer, game: Game) -> None:
     def wait_default(wait_s: float | None) -> float:
         return game.cfg.default_wait_s if wait_s is None else wait_s
 
+    def failure_hint(res: JobResult) -> str:
+        """What to do instead, for failures agents answered with the same call and a new target (w4: 8 drive_to
+        retries in 2 minutes from one stuck spot)."""
+        if res.type == "drive_to" and "stuck" in (res.detail or ""):
+            return " Do not call drive_to again from here: exit_vehicle, then walk_to."
+        return ""
+
     def describe(res: JobResult, waited: float) -> str:
         if res.status == "done":
             return f"Job #{res.job_id} ({res.type}) done: {res.detail}"
         if res.status in ("failed", "cancelled"):
             game.new_queue()  # the agent is being told: start a fresh queue
         if res.status == "failed":
-            raise ToolError(f"Job #{res.job_id} ({res.type}) failed: {res.detail}")
+            raise ToolError(f"Job #{res.job_id} ({res.type}) failed: {res.detail}{failure_hint(res)}")
         if res.status == "cancelled":
             raise ToolError(f"Job #{res.job_id} ({res.type}) was cancelled{': ' + res.detail if res.detail else ''}")
         return (

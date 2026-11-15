@@ -217,7 +217,14 @@ class Agent:
         if len(text) <= n:
             return text
         h = int(n * 0.72)
-        return text[:h] + f"\n...[{len(text) - n} chars cut]...\n" + text[-(n - h):]
+        head, tail = text[:h], text[-(n - h):]
+        # cut on line boundaries: a scan_area grid with a half row in the middle reads as data
+        if "\n" in head:
+            head = head[:head.rindex("\n")]
+        if "\n" in tail:
+            tail = tail[tail.index("\n") + 1:]
+        omitted = len(text) - len(head) - len(tail)
+        return head + f"\n...[{omitted} chars cut: scan a smaller area or use a targeted tool]...\n" + tail
 
     async def _call(self, name: str, args: dict) -> str:
         if name == "notes_set":

@@ -190,7 +190,7 @@ def inspect(e: dict[str, Any]) -> str:
         runs_note = (f"its whole transport line ({num(seg['tiles'])} tile(s))" if seg.get("tiles")
                      else "its whole transport line")
         parts.append(f"Belt reads are line-scoped, not tile-wide: the counts above are {runs_note}"
-                     " — a 2.0 transport line can span multiple tiles, so items may sit anywhere along it.")
+                     " — a transport line can span multiple tiles, so items may sit anywhere along it.")
         pos = as_list(seg.get("positions"))
         if pos:
             bits = ", ".join(f"{num(p.get('count', 1))} {p['name']} ({p.get('lane')} lane) at "

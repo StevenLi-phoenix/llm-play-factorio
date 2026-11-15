@@ -262,3 +262,19 @@ async def test_other_job_events_and_failures_are_kept():
     )
     out = await registered(Bridge(rcon, "agent")).registry["set_status"]("see #77")
     assert "job #78" in out and "job #77 (walk_to) failed" in out
+
+
+async def test_failed_drive_to_tells_the_agent_to_walk():
+    stuck = {"type": "drive_to", "status": "failed", "detail": "the car is stuck at (1.0, 2.0), 40 tiles from the goal"}
+    reg = registered(Bridge(FakeRcon(env(data=stuck), env(data={"messages": [], "last_id": 1}), env(data={"events": []})), "agent")).registry
+    with pytest.raises(ToolError) as ei:
+        await reg["job_wait"](5, 1)
+    assert "exit_vehicle, then walk_to" in str(ei.value)
+
+
+async def test_other_failed_jobs_get_no_hint():
+    walk = {"type": "walk_to", "status": "failed", "detail": "got stuck at (1.0, 2.0)"}
+    reg = registered(Bridge(FakeRcon(env(data=walk), env(data={"messages": [], "last_id": 1}), env(data={"events": []})), "agent")).registry
+    with pytest.raises(ToolError) as ei:
+        await reg["job_wait"](5, 1)
+    assert "exit_vehicle" not in str(ei.value)
