@@ -62,6 +62,14 @@ td svg{display:block}
 .chart svg{width:100%;height:90px;display:block}
 .legend{font-size:11px;color:var(--mute);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+.out{max-height:520px;overflow:auto;font:12px/1.5 var(--mono)}
+.out .r{padding:3px 0;border-top:1px solid color-mix(in srgb,var(--line) 50%,transparent);white-space:pre-wrap;overflow-wrap:anywhere}
+.out .h{color:var(--mute);font-size:11px} .out .h b{color:var(--blue)}
+.out .think{color:var(--mute);font-style:italic} .out .call{color:var(--blue)} .out .result{color:var(--text);opacity:.85}
+.out .error{color:var(--bad)} .out .say{color:var(--acc)} .out .usage,.out .note{color:var(--mute);font-size:11px}
+.outbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-bottom:8px;font-size:12px;color:var(--mute)}
+.outbar button{font:inherit;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:999px;padding:2px 10px;cursor:pointer}
+.outbar button.on{border-color:var(--acc);color:var(--acc)}
 .board{white-space:pre-wrap;font-size:13px;overflow-wrap:anywhere;max-height:360px;overflow:auto}
 .stale{background:color-mix(in srgb,var(--bad) 18%,var(--panel));border-color:var(--bad)}
 button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px}
@@ -93,6 +101,8 @@ button{background:var(--panel2);color:var(--text);border:1px solid var(--line);b
       <div class="card"><h2>Live feed</h2><div class="feed" id="feed"></div></div>
     </div>
   </div>
+  <div class="card" style="margin-top:12px"><h2>Agent output (live) <span class="pill" style="margin-left:8px"><span class="dot" id="outConn"></span><span id="outConnText">connecting</span></span></h2>
+    <div class="outbar" id="outbar"></div><div class="out" id="out"></div></div>
 </div>
 
 <script>
@@ -281,6 +291,44 @@ function connect() {
   es.onerror = () => { setConn("bad", "reconnecting"); if (es.readyState === EventSource.CLOSED) { es.close(); setTimeout(connect, 3000); } };
 }
 connect();
+/* ---------- live agent output: its own SSE stream (/stream), pushed as the agent produces it ---------- */
+const OUT_MAX = 500;
+const outState = { agent: "all", think: true, pin: true, seen: new Set(), es: null };
+function outRow(r) {
+  const d = el("div", "r " + r.kind);
+  d.dataset.agent = r.agent; d.dataset.kind = r.kind;
+  const t = new Date((r.ts || 0) * 1000).toTimeString().slice(0, 8);
+  const h = el("div", "h"); h.append(el("b", "", r.agent), el("span", "", " T" + r.turn + " " + t + " · " + r.kind));
+  d.append(h, el("div", "", r.text || ""));
+  return d;
+}
+function outApply() {
+  for (const d of $("out").children) d.hidden = (outState.agent !== "all" && d.dataset.agent !== outState.agent) || (!outState.think && d.dataset.kind === "think");
+}
+function outBar(agents) {
+  const bar = $("outbar"); bar.replaceChildren();
+  for (const a of ["all", ...agents]) { const b = el("button", a === outState.agent ? "on" : "", a); b.onclick = () => { outState.agent = a; outBar(agents); outApply(); }; bar.append(b); }
+  const th = el("button", outState.think ? "on" : "", "thinking"); th.onclick = () => { outState.think = !outState.think; outBar(agents); outApply(); }; bar.append(th);
+  const pin = el("button", outState.pin ? "on" : "", "follow"); pin.onclick = () => { outState.pin = !outState.pin; outBar(agents); }; bar.append(pin);
+}
+const outAgents = new Set();
+function outAdd(r) {
+  const box = $("out");
+  if (!outAgents.has(r.agent)) { outAgents.add(r.agent); outBar([...outAgents].sort()); }
+  box.append(outRow(r));
+  while (box.children.length > OUT_MAX) box.firstChild.remove();
+  outApply();
+  if (outState.pin) box.scrollTop = box.scrollHeight;
+}
+function outConnect() {
+  if (!window.EventSource) return;
+  const es = new EventSource("/stream?n=80");
+  es.onopen = () => { $("outConn").className = "dot ok"; $("outConnText").textContent = "live"; $("out").replaceChildren(); };
+  es.onmessage = (m) => { try { outAdd(JSON.parse(m.data)); } catch (e) { console.error("bad stream frame", e); } };
+  es.onerror = () => { $("outConn").className = "dot bad"; $("outConnText").textContent = "reconnecting"; if (es.readyState === EventSource.CLOSED) { es.close(); setTimeout(outConnect, 3000); } };
+}
+outBar([]);
+outConnect();
 </script>
 </body>
 </html>

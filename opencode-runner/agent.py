@@ -15,6 +15,7 @@ from factorio_mcp.server import build_app
 import llm
 from llm import Gateway, GatewayBadRequest, GatewayFatal
 import tasklist
+from stream import StreamWriter
 from prompts import COMPACT_PROMPT, NUDGE, NUDGE_CUT, START_MSG, WORKER_SYSTEM
 
 LOG_OK_CHARS, LOG_ERR_CHARS = 160, 500   # tool output chars logged; errors keep the failing reason
@@ -129,6 +130,7 @@ class Agent:
     def __init__(self, name: str, character: str, model: str, cfg: RunCfg, gw: Gateway):
         self.name, self.character, self.model, self.cfg, self.gw = name, character, model, cfg, gw
         self.log = logging.getLogger(f"agent.{name}")
+        self.out = StreamWriter(cfg.root, name)   # live output for the dashboard (stream/<name>.jsonl)
         self.stop = asyncio.Event()
         self.gate = asyncio.Event()
         self.gate.set()                       # cleared by the pacing controller
@@ -361,15 +363,20 @@ class Agent:
             if self.echo_reasoning and msg.get("reasoning_content"):
                 am["reasoning_content"] = msg["reasoning_content"]
             self.history.append(am)
+            turn = self.m["turns"]
+            self.out.emit("think", msg.get("reasoning_content") or msg.get("reasoning") or "", turn)
+            self.out.emit("say", msg.get("content") or "", turn)
             if not calls:
                 self.m["no_tool"] += 1
                 self.log.info("T%d no tool call (%s) %s", self.m["turns"], r["choices"][0].get("finish_reason"), (msg.get("content") or "")[:120])
                 cut = r["choices"][0].get("finish_reason") == "length"
                 self.m["cut"] += int(cut)
+                self.out.emit("note", f"no tool call ({r['choices'][0].get('finish_reason')}): " + ("cut at the output limit" if cut else "nudged to act"), turn)
                 self.history.append({"role": "user", "content": NUDGE_CUT if cut else NUDGE})
             result_chars = trimmed = 0
             for i, c in enumerate(calls):
                 name = c["function"]["name"]
+                self.out.emit("call", f"{name}({c['function'].get('arguments') or ''})", turn)
                 try:
                     args = parse_tool_args(c["function"].get("arguments"))
                     if not isinstance(args, dict):
@@ -393,6 +400,7 @@ class Agent:
                     self.m["tool_errors"] += 1
                 self.last_tools.append(name)
                 self.history.append({"role": "tool", "tool_call_id": c["id"], "content": out})
+                self.out.emit("error" if out.startswith("ERROR") else "result", out, turn)
                 self.log.info("T%d %s(%s) -> %s", self.m["turns"], name, c["function"].get("arguments", "")[:140],
                               out[:LOG_ERR_CHARS if out.startswith("ERROR") else LOG_OK_CHARS].replace("\n", " | "))
             fresh, self.board_seen = board_update(self.cfg.root / "board.md", self.board_seen)
@@ -402,6 +410,7 @@ class Agent:
                                      "human supervisor; follow them from your next action):\n" + fresh})
             self.log.info("T%d prompt=%s completion=%s ms=%s calls=%d results=%dc trimmed=%d", self.m["turns"], u.get("prompt_tokens"),
                           u.get("completion_tokens"), r.get("_ms"), len(calls), result_chars, trimmed)
+            self.out.emit("usage", f"prompt {u.get('prompt_tokens')} completion {u.get('completion_tokens')} in {r.get('_ms')} ms, {len(calls)} call(s)", turn)
             self.write_metrics()
             if self.m["last_prompt"] > self.cfg.high_tokens:
                 self._elide()

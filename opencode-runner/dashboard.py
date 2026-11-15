@@ -5,6 +5,9 @@
 GET /            the page (dashboard.html)
 GET /events      Server-Sent Events: one JSON state snapshot every DASH_EVERY seconds (default 3)
 GET /api/state   the same snapshot once
+GET /stream      Server-Sent Events of live agent output (thoughts, messages, tool calls, results) from
+                 RUNNER_ROOT/stream/<agent>.jsonl: the last ?n=80 events, then each new one within ~0.4 s;
+                 ?agent=w1 limits it to one agent
 GET /healthz     "ok"
 GET /mods        list of the mod zips players install to join the game (DASH_MODS, default ../downloads/mods)
 GET /mods/X.zip  one of those zips; only an exact "<name>_<version>.zip" file name that exists in that folder is served
@@ -131,6 +134,75 @@ def mods_page(mods_dir: Path = MODS_DIR) -> bytes:
             f"<ul>{body}</ul>").encode()
 
 
+AGENT_NAME = re.compile(r"[A-Za-z0-9_-]{1,40}")
+STREAM_BACKLOG_BYTES = 400_000
+STREAM_POLL_S = 0.4
+STREAM_HEARTBEAT_S = 15
+
+
+def valid_agent(name: str | None) -> bool:
+    return name is None or AGENT_NAME.fullmatch(name) is not None
+
+
+def _stream_files(root: Path, agent: str | None) -> list[Path]:
+    d = root / "stream"
+    if not d.is_dir():
+        return []
+    return sorted(p for p in d.glob("*.jsonl") if agent is None or p.stem == agent)
+
+
+def read_backlog(root: Path, n: int, agent: str | None = None) -> list[dict]:
+    """The last n events of the live stream (all agents, or one), oldest first."""
+    rows: list[dict] = []
+    for p in _stream_files(root, agent):
+        try:
+            with p.open("rb") as fh:
+                size = fh.seek(0, 2)
+                fh.seek(max(0, size - STREAM_BACKLOG_BYTES))
+                lines = fh.read().decode("utf-8", "replace").splitlines()
+        except OSError:
+            continue
+        for l in lines[-n:]:
+            try:
+                rows.append(json.loads(l))
+            except ValueError:
+                pass  # first line after a mid-file seek, or a torn line
+    rows.sort(key=lambda r: r.get("ts", 0))
+    return rows[-n:]
+
+
+class StreamTail:
+    """Follows the stream files from their current end; poll() returns the complete new lines as dicts."""
+
+    def __init__(self, root: Path, agent: str | None = None):
+        self.root, self.agent = root, agent
+        self.offsets = {p: p.stat().st_size for p in _stream_files(root, agent)}
+
+    def poll(self) -> list[dict]:
+        out: list[dict] = []
+        for p in _stream_files(self.root, self.agent):
+            off = self.offsets.get(p, 0)
+            try:
+                if p.stat().st_size <= off:
+                    continue
+                with p.open("rb") as fh:
+                    fh.seek(off)
+                    chunk = fh.read()
+            except OSError:
+                continue
+            end = chunk.rfind(b"\n") + 1      # only whole lines; a half-written one waits for its newline
+            if not end:
+                continue
+            self.offsets[p] = off + end
+            for l in chunk[:end].decode("utf-8", "replace").splitlines():
+                try:
+                    out.append(json.loads(l))
+                except ValueError:
+                    pass
+        out.sort(key=lambda r: r.get("ts", 0))
+        return out
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "factorio-dash"
     protocol_version = "HTTP/1.1"
@@ -164,6 +236,41 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, f.read_bytes(), "application/zip")
         elif path == "/healthz":
             self._send(200, b"ok", "text/plain")
+        elif path == "/stream":
+            q = dict(kv.split("=", 1) for kv in (self.path.split("?", 1) + [""])[1].split("&") if "=" in kv)
+            agent = q.get("agent")
+            if not valid_agent(agent):
+                return self._send(400, b"bad agent", "text/plain")
+            try:
+                n = max(1, min(400, int(q.get("n", "80"))))
+            except ValueError:
+                n = 80
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Connection", "keep-alive")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+            tail = StreamTail(ROOT, agent)
+            try:
+                for row in read_backlog(ROOT, n, agent):
+                    self.wfile.write(b"data: " + json.dumps(row, ensure_ascii=False).encode() + b"\n\n")
+                self.wfile.write(b"event: ready\ndata: {}\n\n")
+                self.wfile.flush()
+                quiet = 0.0
+                while True:
+                    time.sleep(STREAM_POLL_S)
+                    rows = tail.poll()
+                    for row in rows:
+                        self.wfile.write(b"data: " + json.dumps(row, ensure_ascii=False).encode() + b"\n\n")
+                    quiet = 0.0 if rows else quiet + STREAM_POLL_S
+                    if rows or quiet >= STREAM_HEARTBEAT_S:
+                        if not rows:
+                            self.wfile.write(b": keep-alive\n\n")
+                            quiet = 0.0
+                        self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                return
         elif path == "/events":
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
