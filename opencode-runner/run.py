@@ -302,8 +302,8 @@ class Supervisor:
             return "trend: (not enough samples yet)"
         t1, k1 = self.kpi_hist[-1]
         t0, k0 = next(((t, k) for t, k in self.kpi_hist if t1 - t <= TREND_WINDOW), self.kpi_hist[0])
-        packs = [p for p in k1.get("produced", {}) if p.endswith("science-pack") or p in TREND_ITEMS]
-        d = {p: (k1["produced"].get(p, 0) - (k0.get("produced") or {}).get(p, 0)) for p in packs}
+        items = [p for p in k1.get("produced", {}) if p.endswith("science-pack") or p in TREND_ITEMS]
+        d = {p: (k1["produced"].get(p, 0) - (k0.get("produced") or {}).get(p, 0)) for p in items}
         b = lambda k: sum((k.get("counts") or {}).values())  # noqa: E731
         return (f"trend over the last {(t1 - t0) / 60:.0f} min: research {k0.get('research')} {float(k0.get('progress') or 0):.0%} -> "
                 f"{k1.get('research')} {float(k1.get('progress') or 0):.0%}; techs done {k0.get('done')} -> {k1.get('done')}; "
