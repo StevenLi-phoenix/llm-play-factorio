@@ -2,6 +2,7 @@
 Description=opencode-go LLM agents playing Factorio (supervisor)
 After=factorio.service
 Requires=factorio.service
+Wants=factorio-dashboard.service
 
 [Service]
 Environment=WORKER_MODELS=deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash,deepseek-v4.1-flash
